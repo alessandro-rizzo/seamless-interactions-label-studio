@@ -14,14 +14,6 @@ export default async function VideosPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">Video List</h1>
-        <p className="text-muted-foreground mt-2">
-          {annotatedVideoIds.size} of {interactions.length} videos annotated •{" "}
-          {interactions.filter(i => i.isDownloaded).length} downloaded
-        </p>
-      </div>
-
       <VideoList interactions={interactions} annotatedVideoIds={annotatedVideoIds} />
     </div>
   );

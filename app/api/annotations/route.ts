@@ -75,14 +75,23 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const videoId = searchParams.get("videoId");
 
-    if (!id) {
-      return NextResponse.json({ error: "Missing annotation ID" }, { status: 400 });
+    if (!id && !videoId) {
+      return NextResponse.json({ error: "Missing annotation ID or videoId" }, { status: 400 });
     }
 
-    await prisma.annotation.delete({
-      where: { id },
-    });
+    if (videoId) {
+      // Delete by videoId
+      await prisma.annotation.delete({
+        where: { videoId },
+      });
+    } else if (id) {
+      // Delete by id
+      await prisma.annotation.delete({
+        where: { id },
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

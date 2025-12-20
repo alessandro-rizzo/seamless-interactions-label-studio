@@ -4,19 +4,22 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 
 ## Features
 
-- 📋 **Browse All Videos** - See all 4000+ hours available in the dataset (fetched from GitHub)
+- 📋 **Browse All Videos** - See all 64,000+ videos available in the dataset (fetched from GitHub)
 - 📥 **On-Demand Downloads** - Download specific videos directly from S3 (no Python required!)
 - 🗑️ **Disk Management** - Delete videos from disk after annotation to save space
 - 📹 **Synchronized Dual Video Player** - Watch both participants side-by-side with frame-perfect synchronization
-- ⏱️ **Built-in Timer** - Track annotation time with start/stop controls
+- ⏱️ **Built-in Timer** - Track annotation time with start/stop controls (auto-stops on save)
 - ✅ **Progress Tracking** - Visual indicators showing completed vs. pending annotations
-- 🏷️ **Binary Labeling** - Label each speaker as Morph A or Morph B with confidence scoring (1-5 scale)
+- 🏷️ **Binary Labeling** - Label each speaker as Morph A or Morph B
+- 🎯 **Per-Speaker Confidence** - Individual confidence scoring for each speaker (1-5 scale)
 - 💬 **Comments** - Add observations and notes to each annotation
+- 🧹 **Clear Annotations** - Delete annotation records with confirmation
 - 📊 **Statistics Dashboard** - View morph distribution, completion rates, and time metrics
+- 🔍 **Advanced Filtering** - Filter by download status, annotation status, and interaction type (improvised/naturalistic)
 - 💾 **Persistent Storage** - SQLite database that survives app restarts
 - 📤 **Export Options** - Download annotations as CSV or JSON
 - 🎨 **Dark Mode UI** - Modern dark theme optimized for extended use
-- ⚡ **Fast & Local** - Runs entirely on your machine with Python toolkit integration
+- ⚡ **Fast & Local** - Runs entirely on your machine
 
 ## Prerequisites
 
@@ -24,7 +27,7 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 - **pnpm** package manager: `npm install -g pnpm`
 - **Internet connection** (to fetch video list and download videos)
 
-That's it! No Python, no local dataset required. Everything is fetched on-demand.
+That's it! No Python required. Everything is fetched on-demand from S3.
 
 ## Quick Start
 
@@ -54,44 +57,42 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Labeling Workflow
 
-1. **Browse Videos** - Click "Label Videos" from the home page to see all available interactions (from the full dataset)
-2. **Download Video** - Click "Download" to fetch the video on-demand from S3 (typically 30-50 MB, takes a few seconds)
-3. **Watch & Analyze** - Both participant videos play in perfect sync with shared playback controls
-4. **Start Timer** - Begin timing when you start analyzing the interaction
-5. **Label Speakers** - Select Morph A or Morph B for each participant from the dropdown menus
-6. **Set Confidence** - Use the slider to indicate your confidence level (1=low, 5=high)
-7. **Add Comments** - Include any observations or notes
-8. **Save** - Stop timer and save your annotation
-9. **Clean Up** - Delete the video from disk using the trash icon to save space
+1. **Browse Videos** - Click "Start Labeling" from the home page to see all available interactions
+2. **Filter Videos** - Use filters to find specific videos:
+   - Download status (all/downloaded/not downloaded)
+   - Annotation status (all/annotated/not annotated)
+   - Interaction type (all/improvised/naturalistic)
+3. **Download Video** - Click "Download" to fetch the video on-demand from S3 (typically 30-50 MB)
+4. **Watch & Analyze** - Both participant videos play in perfect sync with shared playback controls
+5. **Start Timer** - Begin timing when you start analyzing the interaction
+6. **Label Speakers** - Select Morph A or Morph B for each participant
+7. **Set Confidence** - Use individual sliders for each speaker's confidence (1=low, 5=high)
+8. **Add Comments** - Include any observations or notes (optional)
+9. **Save** - Timer and video automatically stop when you save
+10. **Clear Annotation** - Use "Clear Annotation" button to delete the record if needed
+11. **Clean Up** - Delete the video from disk using the trash icon to save space
 
-### Statistics & Export
+### Dashboard & Export
 
-Navigate to the **Statistics** page to:
+The home page shows:
 
-- View completion progress and totals
-- See morph distribution across all annotations
-- Review average confidence scores
-- Check total and average labeling time
-- Browse recent annotations
-- **Export data** - Click "Export CSV" or "Export JSON" to download all annotations
+- **Total Videos** - Downloaded videos as percentage of total dataset
+- **Annotated Videos** - Completed annotations as percentage of downloaded
+- **Labeled Speakers** - Total number of speakers annotated
+- **Average Confidence** - Overall and per-speaker confidence metrics
+- **Labeling Time** - Total and average time spent per video
+- **Morph Distribution** - Visual breakdown of Morph A vs B proportions
+- **Recent Annotations** - Latest 10 annotations with quick access
 
-### Customizing Labels
+**Export Options:**
+- Click "Export JSON" to download all annotations as JSON
+- Click "Export CSV" to download all annotations as CSV
 
-Edit `components/labeling-form.tsx` line 11 to customize morph options:
+### Keyboard Navigation
 
-```typescript
-const MORPH_OPTIONS = ["Morph A", "Morph B"];
-```
-
-Current options are **Morph A** and **Morph B** only.
-
-### Using Different Dataset Location
-
-If your dataset is not at `~/personal/seamless_interaction`, update the path in `lib/dataset.ts`:
-
-```typescript
-const DATASET_PATH = path.join(process.env.HOME || '', 'your', 'path', 'here');
-```
+- Use video player controls for play/pause and seeking
+- Both videos stay synchronized automatically
+- Timer start/stop is manual (button click)
 
 ## Project Structure
 
@@ -100,27 +101,28 @@ seamless-interactions-label-studio/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # Backend API routes
 │   │   ├── annotations/          # Annotation CRUD operations
+│   │   ├── download/             # Video download endpoint
 │   │   ├── export/              # CSV/JSON export endpoint
+│   │   ├── interactions/        # Remote dataset listing
 │   │   └── video/               # Video streaming with range support
-│   ├── statistics/              # Statistics dashboard page
 │   ├── videos/                  # Video list and labeling pages
 │   │   └── [videoId]/           # Dynamic annotation page per video
 │   ├── layout.tsx               # Root layout with header
-│   ├── page.tsx                 # Home page with overview
+│   ├── page.tsx                 # Dashboard with statistics
 │   └── globals.css              # Tailwind styles
 ├── components/                   # React components
-│   ├── labeling-form.tsx        # Annotation form with timer
-│   ├── synchronized-video-player.tsx  # Dual video player
-│   └── video-player.tsx         # Single video player
+│   ├── labeling-form.tsx        # Annotation form with timer and controls
+│   ├── synchronized-video-player.tsx  # Dual video player with sync
+│   └── video-list.tsx           # Filterable video list with pagination
 ├── lib/                         # Core utilities
 │   ├── db.ts                   # Prisma client singleton
-│   ├── dataset.ts              # Dataset scanning and parsing
+│   ├── dataset.ts              # Local dataset scanning
+│   ├── dataset-remote.ts       # Remote dataset listing from GitHub
 │   └── utils.ts                # Helper functions
 ├── prisma/                      # Database
 │   ├── schema.prisma           # Database schema definition
 │   └── dev.db                  # SQLite database (gitignored)
-├── __tests__/                   # Test suite
-│   └── lib/                    # Unit tests
+├── downloads/                   # Downloaded videos (gitignored)
 └── package.json                 # Dependencies and scripts
 ```
 
@@ -131,16 +133,17 @@ The `Annotation` model stores:
 | Field | Type | Description |
 |-------|------|-------------|
 | `id` | String | Unique identifier (CUID) |
-| `videoId` | String | Video identifier (V{vendor}_S{session}_I{interaction}) |
+| `videoId` | String | Video identifier (V{vendor}_S{session}_I{interaction}) - unique |
 | `vendorId` | Int | Vendor ID from dataset |
 | `sessionId` | Int | Session ID from dataset |
 | `interactionId` | Int | Interaction ID from dataset |
-| `speaker1Id` | Int | Participant 1 ID |
-| `speaker2Id` | Int | Participant 2 ID |
+| `speaker1Id` | String | Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A") |
+| `speaker2Id` | String | Participant 2 ID |
 | `speaker1Label` | String | Morph label for speaker 1 |
 | `speaker2Label` | String | Morph label for speaker 2 |
+| `speaker1Confidence` | Int | Confidence score for speaker 1 (1-5) |
+| `speaker2Confidence` | Int | Confidence score for speaker 2 (1-5) |
 | `comments` | String | Optional comments |
-| `confidence` | Int | Confidence score (1-5) |
 | `labelingTimeMs` | Int | Time spent labeling (milliseconds) |
 | `createdAt` | DateTime | Creation timestamp |
 | `updatedAt` | DateTime | Last update timestamp |
@@ -166,7 +169,8 @@ pnpm prisma studio
 
 Reset database:
 ```bash
-pnpm prisma migrate reset
+rm prisma/dev.db
+pnpm prisma db push
 ```
 
 ### Building for Production
@@ -181,9 +185,8 @@ pnpm start
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **UI Components**: [Radix UI](https://www.radix-ui.com/)
 - **Database**: [SQLite](https://www.sqlite.org/) + [Prisma ORM](https://www.prisma.io/)
-- **Testing**: [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/react)
+- **Icons**: [Lucide React](https://lucide.dev/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
 
 ## API Reference
@@ -195,10 +198,22 @@ pnpm start
 
 **POST /api/annotations**
 - Creates or updates an annotation
-- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, comments, confidence, labelingTimeMs }`
+- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, comments, labelingTimeMs }`
+
+**DELETE /api/annotations?videoId={videoId}**
+- Deletes an annotation by videoId
 
 **DELETE /api/annotations?id={id}**
 - Deletes an annotation by ID
+
+### Download API
+
+**POST /api/download**
+- Downloads videos from S3
+- Body: `{ fileId1, fileId2, label, split, batchIdx }`
+
+**DELETE /api/download?fileId1={id1}&fileId2={id2}**
+- Deletes downloaded videos from disk
 
 ### Export API
 
@@ -210,8 +225,14 @@ pnpm start
 
 **GET /api/video?path={absolutePath}**
 - Streams video file with range request support
-- Validates path is within dataset directory
+- Validates path is within allowed directories
 - Returns 206 Partial Content for seeking
+
+### Interactions API
+
+**GET /api/interactions**
+- Returns list of all available interactions from dataset
+- Includes download status for each video
 
 ## Troubleshooting
 
@@ -222,9 +243,10 @@ Videos are typically 30-50 MB each and download directly from S3. Download speed
 ### Videos won't play
 
 - Open browser console to check for errors
-- Verify video paths are correct
+- Verify videos downloaded successfully
 - Ensure videos are valid MP4 format
 - Check that video API endpoint is accessible
+- Try deleting and re-downloading the video
 
 ### Database errors
 
@@ -233,7 +255,8 @@ Videos are typically 30-50 MB each and download directly from S3. Download speed
 pnpm prisma generate
 
 # Reset database (warning: deletes all data)
-pnpm prisma migrate reset
+rm prisma/dev.db
+pnpm prisma db push
 
 # View database
 pnpm prisma studio
@@ -253,45 +276,37 @@ pnpm install
 pnpm build
 ```
 
-## Dataset Requirements
+## Dataset Format
 
 The app expects videos following this naming pattern:
 ```
 V{vendor}_S{session}_I{interaction}_P{participant}.mp4
 ```
 
-Example: `V1_S2_I3_P4.mp4`
-- Vendor: 1
-- Session: 2
-- Interaction: 3
-- Participant: 4
+Example: `V00_S0644_I00000129_P0799.mp4`
+- Vendor: 00 (with leading zeros preserved)
+- Session: 0644
+- Interaction: 00000129
+- Participant: 0799 (can be alphanumeric like "0299A")
 
-Videos are automatically grouped by interaction ID. Each interaction must have at least 2 participant videos to appear in the list.
+Videos are automatically grouped by interaction ID. Each interaction must have exactly 2 participant videos to be displayed.
 
 ## Performance Notes
 
 - Videos are streamed directly from disk (not loaded into memory)
 - Range requests enable seeking without full download
-- SQLite provides fast local queries
-- Static pages pre-rendered where possible
+- SQLite provides fast local queries (<1ms for most operations)
+- Server components pre-render where possible
 - Production build optimizes bundle size
+- Filelist cached for 24 hours to reduce GitHub API calls
 
 ## License
 
 This tool is created for research purposes. The Seamless Interaction Dataset has its own license terms - please review at [github.com/facebookresearch/seamless_interaction](https://github.com/facebookresearch/seamless_interaction).
 
-## Contributing
-
-This is a research tool. To suggest improvements:
-
-1. Test your changes locally
-2. Run the test suite: `pnpm test`
-3. Ensure build succeeds: `pnpm build`
-4. Document any new features
-
 ## Support
 
-- Review this README and the [original requirements](CLAUDE.md)
+- Review this README for common issues
 - Check the Seamless Interaction Dataset [documentation](https://github.com/facebookresearch/seamless_interaction)
 - Inspect browser console for client-side errors
 - Check terminal output for server-side errors

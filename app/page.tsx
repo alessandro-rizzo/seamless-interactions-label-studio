@@ -1,18 +1,21 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getAvailableVideos } from "@/lib/dataset";
+import { listRemoteInteractions } from "@/lib/dataset-remote";
 import { formatTime, formatNumber } from "@/lib/utils";
 import { Download } from "lucide-react";
 
 export default async function Home() {
-  const [videos, annotations] = await Promise.all([
+  const [videos, allRemoteVideos, annotations] = await Promise.all([
     getAvailableVideos(),
+    listRemoteInteractions(),
     prisma.annotation.findMany({
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
-  const totalVideos = videos.length;
+  const totalVideosInDataset = allRemoteVideos.length;
+  const downloadedVideos = videos.length;
   const annotatedVideos = annotations.length;
   const totalSpeakers = annotatedVideos * 2;
 
@@ -47,51 +50,49 @@ export default async function Home() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground mt-2">Overview of your labeling progress</p>
-        </div>
-        <div className="flex gap-2">
+      {/* Quick Actions */}
+      <div className="flex gap-3 mb-8">
+        <Link
+          href="/videos"
+          className="flex-1 p-8 border-2 rounded-lg bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors"
+        >
+          <h2 className="text-2xl font-semibold mb-2">📹 Start Labeling</h2>
+          <p className="text-muted-foreground">
+            Browse and label video interactions with speaker morphs
+          </p>
+        </Link>
+        <div className="flex flex-col gap-3">
           <Link
             href="/api/export?format=json"
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-card hover:bg-accent transition-colors"
+            className="flex items-center gap-2 px-6 py-4 border-2 rounded-lg bg-card hover:bg-accent transition-colors"
           >
-            <Download size={16} />
-            Export JSON
+            <Download size={20} />
+            <span className="font-semibold">Export JSON</span>
           </Link>
           <Link
             href="/api/export?format=csv"
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-card hover:bg-accent transition-colors"
+            className="flex items-center gap-2 px-6 py-4 border-2 rounded-lg bg-card hover:bg-accent transition-colors"
           >
-            <Download size={16} />
-            Export CSV
+            <Download size={20} />
+            <span className="font-semibold">Export CSV</span>
           </Link>
         </div>
       </div>
-
-      {/* Quick Action */}
-      <Link
-        href="/videos"
-        className="block mb-8 p-8 border-2 rounded-lg bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors"
-      >
-        <h2 className="text-2xl font-semibold mb-2">📹 Start Labeling</h2>
-        <p className="text-muted-foreground">
-          Browse and label video interactions with speaker morphs
-        </p>
-      </Link>
 
       {/* Overview Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Total Videos</h3>
-          <p className="text-3xl font-bold mt-2">{formatNumber(totalVideos)}</p>
+          <p className="text-3xl font-bold mt-2">{formatNumber(downloadedVideos)}</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {totalVideosInDataset > 0 ? ((downloadedVideos / totalVideosInDataset) * 100).toFixed(1) : 0}% of {formatNumber(totalVideosInDataset)} total
+          </p>
         </div>
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Annotated Videos</h3>
           <p className="text-3xl font-bold mt-2">{formatNumber(annotatedVideos)}</p>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalVideos > 0 ? ((annotatedVideos / totalVideos) * 100).toFixed(1) : 0}% complete
+            {downloadedVideos > 0 ? ((annotatedVideos / downloadedVideos) * 100).toFixed(1) : 0}% of downloaded
           </p>
         </div>
         <div className="p-6 border rounded-lg bg-card">

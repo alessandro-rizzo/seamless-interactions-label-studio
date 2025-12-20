@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SynchronizedVideoPlayer, SynchronizedVideoPlayerRef } from "./synchronized-video-player";
-import { Timer, Save, ArrowLeft } from "lucide-react";
+import { Timer, Save, ArrowLeft, Trash2 } from "lucide-react";
 import type { VideoMetadata } from "@/lib/dataset";
 import type { Annotation } from "@prisma/client";
 
@@ -25,6 +25,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(existingAnnotation?.labelingTimeMs || 0);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   // Timer effect
@@ -98,6 +99,35 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
       setSaveError("Failed to save annotation. Please try again.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!existingAnnotation) return;
+
+    if (!confirm("Are you sure you want to delete this annotation? This action cannot be undone.")) {
+      return;
+    }
+
+    setIsDeleting(true);
+    setSaveError(null);
+
+    try {
+      const response = await fetch(`/api/annotations?videoId=${encodeURIComponent(video.videoId)}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete annotation");
+      }
+
+      // Refresh the page to show clean state
+      router.refresh();
+    } catch (error) {
+      console.error("Error deleting annotation:", error);
+      setSaveError("Failed to delete annotation. Please try again.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -262,9 +292,20 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
             <ArrowLeft size={16} />
             Back to List
           </button>
+          {existingAnnotation && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting || isSaving}
+              className="flex items-center gap-2 px-4 py-2 border rounded-lg bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
+            >
+              <Trash2 size={16} />
+              {isDeleting ? "Clearing..." : "Clear Annotation"}
+            </button>
+          )}
           <button
             type="submit"
-            disabled={isSaving}
+            disabled={isSaving || isDeleting}
             className="flex items-center gap-2 px-6 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             <Save size={16} />

@@ -48,6 +48,10 @@ downloads/
 # cache
 .cache/
 
+# database
+prisma/dev.db
+prisma/dev.db-journal
+
 # IDE
 .vscode
 .idea
