@@ -1,0 +1,375 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Download, Trash2, Check, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import type { InteractionInfo } from "@/lib/dataset-remote";
+
+interface VideoListProps {
+  interactions: InteractionInfo[];
+  annotatedVideoIds: Set<string>;
+}
+
+const ITEMS_PER_PAGE = 20;
+
+export function VideoList({ interactions: initialInteractions, annotatedVideoIds }: VideoListProps) {
+  const [interactions, setInteractions] = useState(initialInteractions);
+  const [downloading, setDownloading] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
+  const [filter, setFilter] = useState<"all" | "downloaded" | "not-downloaded">("all");
+  const [annotatedFilter, setAnnotatedFilter] = useState<"all" | "annotated" | "not-annotated">("all");
+  const [labelFilter, setLabelFilter] = useState<"all" | "improvised" | "naturalistic">("all");
+  const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const handleDownload = async (interaction: InteractionInfo) => {
+    setDownloading(prev => new Set([...prev, interaction.videoId]));
+
+    try {
+      const response = await fetch("/api/download", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          fileId1: interaction.fileId1,
+          fileId2: interaction.fileId2,
+          label: interaction.label,
+          split: interaction.split,
+          batchIdx: interaction.batchIdx,
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setInteractions(prev =>
+          prev.map(i =>
+            i.videoId === interaction.videoId
+              ? {
+                  ...i,
+                  isDownloaded: true,
+                  participant1Path: result.participant1Path,
+                  participant2Path: result.participant2Path,
+                }
+              : i
+          )
+        );
+      } else {
+        const error = await response.json();
+        alert(`Failed to download video: ${error.error || response.statusText}`);
+      }
+    } catch (error) {
+      console.error("Download error:", error);
+      alert("Error downloading video");
+    } finally {
+      setDownloading(prev => {
+        const next = new Set(prev);
+        next.delete(interaction.videoId);
+        return next;
+      });
+    }
+  };
+
+  const handleDelete = async (interaction: InteractionInfo) => {
+    if (!confirm("Delete this downloaded video?")) return;
+
+    setDeleting(prev => new Set([...prev, interaction.videoId]));
+
+    try {
+      const response = await fetch(
+        `/api/download?fileId1=${interaction.fileId1}&fileId2=${interaction.fileId2}`,
+        { method: "DELETE" }
+      );
+
+      if (response.ok) {
+        setInteractions(prev =>
+          prev.map(i =>
+            i.videoId === interaction.videoId
+              ? {
+                  ...i,
+                  isDownloaded: false,
+                  participant1Path: undefined,
+                  participant2Path: undefined,
+                }
+              : i
+          )
+        );
+      } else {
+        alert("Failed to delete video");
+      }
+    } catch (error) {
+      console.error("Delete error:", error);
+      alert("Error deleting video");
+    } finally {
+      setDeleting(prev => {
+        const next = new Set(prev);
+        next.delete(interaction.videoId);
+        return next;
+      });
+    }
+  };
+
+  const filteredInteractions = interactions.filter(interaction => {
+    // Download status filter
+    if (filter === "downloaded" && !interaction.isDownloaded) return false;
+    if (filter === "not-downloaded" && interaction.isDownloaded) return false;
+
+    // Annotated status filter
+    const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+    if (annotatedFilter === "annotated" && !isAnnotated) return false;
+    if (annotatedFilter === "not-annotated" && isAnnotated) return false;
+
+    // Label type filter (improvised/naturalistic)
+    if (labelFilter === "improvised" && interaction.label !== "improvised") return false;
+    if (labelFilter === "naturalistic" && interaction.label !== "naturalistic") return false;
+
+    // Search filter
+    if (search && !interaction.videoId.toLowerCase().includes(search.toLowerCase())) return false;
+
+    return true;
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredInteractions.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedInteractions = filteredInteractions.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change
+  const handleFilterChange = (newFilter: typeof filter) => {
+    setFilter(newFilter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (newSearch: string) => {
+    setSearch(newSearch);
+    setCurrentPage(1);
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Filters */}
+      <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="Search by video ID..."
+          value={search}
+          onChange={e => handleSearchChange(e.target.value)}
+          className="w-full px-4 py-2 border rounded-lg bg-background"
+        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <select
+            value={filter}
+            onChange={e => handleFilterChange(e.target.value as any)}
+            className="px-4 py-2 border rounded-lg bg-background"
+          >
+            <option value="all">All ({interactions.length})</option>
+            <option value="downloaded">
+              Downloaded ({interactions.filter(i => i.isDownloaded).length})
+            </option>
+            <option value="not-downloaded">
+              Not Downloaded ({interactions.filter(i => !i.isDownloaded).length})
+            </option>
+          </select>
+
+          <select
+            value={annotatedFilter}
+            onChange={e => {
+              setAnnotatedFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border rounded-lg bg-background"
+          >
+            <option value="all">All Status ({interactions.length})</option>
+            <option value="annotated">
+              Annotated ({Array.from(annotatedVideoIds).length})
+            </option>
+            <option value="not-annotated">
+              Not Annotated ({interactions.length - Array.from(annotatedVideoIds).length})
+            </option>
+          </select>
+
+          <select
+            value={labelFilter}
+            onChange={e => {
+              setLabelFilter(e.target.value as any);
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 border rounded-lg bg-background"
+          >
+            <option value="all">All Types ({interactions.length})</option>
+            <option value="improvised">
+              Improvised ({interactions.filter(i => i.label === "improvised").length})
+            </option>
+            <option value="naturalistic">
+              Naturalistic ({interactions.filter(i => i.label === "naturalistic").length})
+            </option>
+          </select>
+        </div>
+      </div>
+
+      {/* Results count and pagination info */}
+      <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div>
+          Showing {startIndex + 1}-{Math.min(endIndex, filteredInteractions.length)} of{" "}
+          {filteredInteractions.length} videos
+        </div>
+        {totalPages > 1 && (
+          <div>
+            Page {currentPage} of {totalPages}
+          </div>
+        )}
+      </div>
+
+      {/* Video Grid */}
+      {filteredInteractions.length === 0 ? (
+        <div className="p-8 border rounded-lg bg-card text-center">
+          <p className="text-muted-foreground">No videos found matching your filters</p>
+        </div>
+      ) : (
+        <div className="grid gap-4">
+          {paginatedInteractions.map(interaction => {
+            const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+            const isDownloading = downloading.has(interaction.videoId);
+            const isDeleting = deleting.has(interaction.videoId);
+
+            return (
+              <div
+                key={interaction.videoId}
+                className="p-6 border rounded-lg bg-card flex items-center justify-between"
+              >
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold">{interaction.videoId}</h2>
+                    {isAnnotated && (
+                      <span className="text-green-600 text-xl" title="Annotated">
+                        ✓
+                      </span>
+                    )}
+                    {interaction.isDownloaded && (
+                      <span className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400">
+                        Downloaded
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-sm text-muted-foreground mt-1">
+                    Vendor {interaction.vendorId} • Session {interaction.sessionId} • Interaction{" "}
+                    {interaction.interactionId}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {interaction.label} • {interaction.split}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {interaction.isDownloaded ? (
+                    <>
+                      <Link
+                        href={`/videos/${interaction.videoId}`}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                      >
+                        Label →
+                      </Link>
+                      <button
+                        onClick={() => handleDelete(interaction)}
+                        disabled={isDeleting}
+                        className="p-2 border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
+                        title="Delete from disk"
+                      >
+                        {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleDownload(interaction)}
+                      disabled={isDownloading}
+                      className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      {isDownloading ? (
+                        <>
+                          <Loader2 size={16} className="animate-spin" />
+                          Downloading...
+                        </>
+                      ) : (
+                        <>
+                          <Download size={16} />
+                          Download
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <ChevronLeft size={16} />
+            Previous
+          </button>
+
+          <div className="flex items-center gap-2">
+            {/* Show first page */}
+            {currentPage > 3 && (
+              <>
+                <button
+                  onClick={() => setCurrentPage(1)}
+                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors"
+                >
+                  1
+                </button>
+                {currentPage > 4 && <span className="px-2">...</span>}
+              </>
+            )}
+
+            {/* Show pages around current */}
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(page => page >= currentPage - 2 && page <= currentPage + 2)
+              .map(page => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`px-3 py-2 border rounded-lg transition-colors ${
+                    page === currentPage
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-accent"
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+
+            {/* Show last page */}
+            {currentPage < totalPages - 2 && (
+              <>
+                {currentPage < totalPages - 3 && <span className="px-2">...</span>}
+                <button
+                  onClick={() => setCurrentPage(totalPages)}
+                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors"
+                >
+                  {totalPages}
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

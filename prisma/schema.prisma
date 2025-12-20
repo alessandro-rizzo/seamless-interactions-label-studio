@@ -1,0 +1,43 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Annotation {
+  id                String   @id @default(cuid())
+
+  // Video identifiers
+  videoId           String   // Format: V{vendor}_S{session}_I{interaction}
+  vendorId          Int
+  sessionId         Int
+  interactionId     Int
+
+  // Speakers (participants in the interaction)
+  speaker1Id        String   // Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A")
+  speaker2Id        String   // Participant 2 ID (can be alphanumeric, e.g., "0799", "0299A")
+
+  // Labels (morphs A/B)
+  speaker1Label     String   // Morph label for speaker 1
+  speaker2Label     String   // Morph label for speaker 2
+
+  // Confidence (per speaker)
+  speaker1Confidence Int     @default(3) // 1-5 scale for speaker 1
+  speaker2Confidence Int     @default(3) // 1-5 scale for speaker 2
+
+  // Metadata
+  comments          String?  @default("")
+  labelingTimeMs    Int      @default(0) // Time taken to label in milliseconds
+
+  // Timestamps
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([videoId])
+  @@index([createdAt])
+}
