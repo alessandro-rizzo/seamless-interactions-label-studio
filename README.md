@@ -98,6 +98,8 @@ The home page shows:
 
 ```
 seamless-interactions-label-studio/
+├── .github/workflows/            # GitHub Actions CI/CD
+│   └── pr.yml                   # PR checks (lint, tests)
 ├── app/                          # Next.js App Router
 │   ├── api/                      # Backend API routes
 │   │   ├── annotations/          # Annotation CRUD operations
@@ -187,6 +189,14 @@ The e2e test covers the complete labeling workflow:
 - Saving annotation and verifying stats update
 - Exporting JSON and CSV to verify data
 - Cleanup (deleting annotation and downloaded video)
+
+### Continuous Integration
+
+The project includes a GitHub Actions workflow (`.github/workflows/pr.yml`) that runs on every PR and push to main. It executes three jobs in parallel:
+
+- **Lint & Format** - Runs ESLint and TypeScript type checking
+- **Unit Tests** - Runs Jest tests with coverage report
+- **E2E Tests** - Runs Playwright tests against a live dev server
 
 ### Database Management
 
