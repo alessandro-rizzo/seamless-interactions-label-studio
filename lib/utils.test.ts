@@ -1,6 +1,27 @@
-import { formatTime, formatNumber } from '@/lib/utils';
+import { cn, formatTime, formatNumber } from './utils';
 
 describe('utils', () => {
+  describe('cn', () => {
+    it('should merge class names', () => {
+      expect(cn('foo', 'bar')).toBe('foo bar');
+    });
+
+    it('should handle conditional classes', () => {
+      expect(cn('foo', false && 'bar', 'baz')).toBe('foo baz');
+      expect(cn('foo', true && 'bar', 'baz')).toBe('foo bar baz');
+    });
+
+    it('should merge tailwind classes correctly', () => {
+      expect(cn('px-2', 'px-4')).toBe('px-4');
+      expect(cn('text-red-500', 'text-blue-500')).toBe('text-blue-500');
+    });
+
+    it('should handle empty inputs', () => {
+      expect(cn()).toBe('');
+      expect(cn('')).toBe('');
+    });
+  });
+
   describe('formatTime', () => {
     it('should format seconds correctly', () => {
       expect(formatTime(5000)).toBe('5s');

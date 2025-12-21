@@ -12,10 +12,17 @@ const customJestConfig = {
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
+  // Co-located tests: look for .test.ts files next to source files
   testMatch: [
-    '**/__tests__/**/*.[jt]s?(x)',
-    '**/?(*.)+(spec|test).[jt]s?(x)',
+    '**/*.test.[jt]s?(x)',
   ],
+  // Coverage configuration
+  collectCoverageFrom: [
+    'lib/**/*.{js,ts}',
+    '!lib/**/*.d.ts',
+  ],
+  coverageReporters: ['text', 'text-summary', 'lcov', 'html'],
+  coverageDirectory: 'coverage',
 }
 
 // createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
