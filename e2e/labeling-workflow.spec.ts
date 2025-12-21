@@ -95,6 +95,40 @@ test.describe('Labeling Workflow', () => {
     // Verify the annotation appears in recent annotations
     await expect(page.locator(`a[href="/videos/${videoId}"]`).first()).toBeVisible();
 
+    // Step 11b: Download JSON export and verify
+    const [jsonDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('link', { name: 'Export JSON' }).click(),
+    ]);
+    const jsonFileName = jsonDownload.suggestedFilename();
+    expect(jsonFileName).toMatch(/annotations-.*\.json$/);
+
+    // Read and verify JSON content
+    const jsonPath = await jsonDownload.path();
+    const jsonContent = require('fs').readFileSync(jsonPath!, 'utf-8');
+    const jsonData = JSON.parse(jsonContent);
+    expect(Array.isArray(jsonData)).toBe(true);
+    expect(jsonData.length).toBeGreaterThan(0);
+    // Verify our annotation is in the export
+    const ourAnnotation = jsonData.find((a: any) => a.videoId === videoId);
+    expect(ourAnnotation).toBeTruthy();
+    expect(ourAnnotation.speaker1Label).toBe('Morph A');
+    expect(ourAnnotation.speaker2Label).toBe('Morph B');
+
+    // Step 11c: Download CSV export and verify
+    const [csvDownload] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('link', { name: 'Export CSV' }).click(),
+    ]);
+    const csvFileName = csvDownload.suggestedFilename();
+    expect(csvFileName).toMatch(/annotations-.*\.csv$/);
+
+    // Read and verify CSV content
+    const csvPath = await csvDownload.path();
+    const csvContent = require('fs').readFileSync(csvPath!, 'utf-8');
+    expect(csvContent).toContain('videoId'); // Header
+    expect(csvContent).toContain(videoId!); // Our annotation
+
     // Step 12: Cleanup - delete the annotation
     await page.goto(`/videos/${videoId}`);
 
