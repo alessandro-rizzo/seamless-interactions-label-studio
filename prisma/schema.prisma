@@ -30,8 +30,11 @@ model Annotation {
   speaker1Confidence Int     @default(3) // 1-5 scale for speaker 1
   speaker2Confidence Int     @default(3) // 1-5 scale for speaker 2
 
+  // Comments (per speaker)
+  speaker1Comments  String?  @default("")
+  speaker2Comments  String?  @default("")
+
   // Metadata
-  comments          String?  @default("")
   labelingTimeMs    Int      @default(0) // Time taken to label in milliseconds
 
   // Timestamps

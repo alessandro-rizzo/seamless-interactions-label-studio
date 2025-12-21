@@ -8,6 +8,7 @@ interface SynchronizedVideoPlayerProps {
   video2Src: string;
   participant1Label: string;
   participant2Label: string;
+  onFirstPlay?: () => void;
 }
 
 export interface SynchronizedVideoPlayerRef {
@@ -19,12 +20,14 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
   video2Src,
   participant1Label,
   participant2Label,
+  onFirstPlay,
 }, ref) => {
   const video1Ref = useRef<HTMLVideoElement>(null);
   const video2Ref = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const hasPlayedRef = useRef(false);
 
   // Expose stop method to parent via ref
   useImperativeHandle(ref, () => ({
@@ -79,6 +82,11 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
       video1.pause();
       video2.pause();
     } else {
+      // Trigger onFirstPlay callback on first play
+      if (!hasPlayedRef.current) {
+        hasPlayedRef.current = true;
+        onFirstPlay?.();
+      }
       // Sync videos before playing
       video2.currentTime = video1.currentTime;
       video1.play();

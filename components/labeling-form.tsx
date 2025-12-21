@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { SynchronizedVideoPlayer, SynchronizedVideoPlayerRef } from "./synchronized-video-player";
-import { Timer, Save, ArrowLeft, Trash2 } from "lucide-react";
+import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import type { VideoMetadata } from "@/lib/dataset";
 import type { Annotation } from "@prisma/client";
 
@@ -21,33 +21,37 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   const [speaker2Label, setSpeaker2Label] = useState(existingAnnotation?.speaker2Label || "");
   const [speaker1Confidence, setSpeaker1Confidence] = useState(existingAnnotation?.speaker1Confidence || 3);
   const [speaker2Confidence, setSpeaker2Confidence] = useState(existingAnnotation?.speaker2Confidence || 3);
-  const [comments, setComments] = useState(existingAnnotation?.comments || "");
-  const [isTimerRunning, setIsTimerRunning] = useState(false);
-  const [elapsedTime, setElapsedTime] = useState(existingAnnotation?.labelingTimeMs || 0);
+  const [speaker1Comments, setSpeaker1Comments] = useState(existingAnnotation?.speaker1Comments || "");
+  const [speaker2Comments, setSpeaker2Comments] = useState(existingAnnotation?.speaker2Comments || "");
   const [isSaving, setIsSaving] = useState(false);
+
+  // Time tracking: labeling time = last morph selection time - first video play time
+  const firstPlayTimeRef = useRef<number | null>(existingAnnotation ? 0 : null);
+  const lastMorphSelectionTimeRef = useRef<number | null>(existingAnnotation ? existingAnnotation.labelingTimeMs : null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
-  // Timer effect
-  useEffect(() => {
-    if (!isTimerRunning) return;
-
-    const interval = setInterval(() => {
-      setElapsedTime((prev) => prev + 100);
-    }, 100);
-
-    return () => clearInterval(interval);
-  }, [isTimerRunning]);
-
-  const toggleTimer = () => {
-    setIsTimerRunning((prev) => !prev);
+  // Track first video play
+  const handleFirstPlay = () => {
+    if (firstPlayTimeRef.current === null) {
+      firstPlayTimeRef.current = Date.now();
+    }
   };
 
-  const formatTime = (ms: number) => {
-    const seconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+  // Track morph selection time
+  const handleMorphSelection = (setter: (value: string) => void) => (value: string) => {
+    setter(value);
+    if (value) {
+      lastMorphSelectionTimeRef.current = Date.now();
+    }
+  };
+
+  // Calculate labeling time in milliseconds
+  const calculateLabelingTime = (): number => {
+    if (firstPlayTimeRef.current === null || lastMorphSelectionTimeRef.current === null) {
+      return existingAnnotation?.labelingTimeMs || 0;
+    }
+    return lastMorphSelectionTimeRef.current - firstPlayTimeRef.current;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,8 +63,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
       return;
     }
 
-    // Stop timer and video playback
-    setIsTimerRunning(false);
+    // Stop video playback
     videoPlayerRef.current?.stop();
 
     setIsSaving(true);
@@ -82,8 +85,9 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
           speaker2Label,
           speaker1Confidence,
           speaker2Confidence,
-          comments,
-          labelingTimeMs: elapsedTime,
+          speaker1Comments,
+          speaker2Comments,
+          labelingTimeMs: calculateLabelingTime(),
         }),
       });
 
@@ -141,6 +145,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
           video2Src={video.participant2VideoPath}
           participant1Label={`Participant ${video.participant1Id}`}
           participant2Label={`Participant ${video.participant2Id}`}
+          onFirstPlay={handleFirstPlay}
         />
       </div>
 
@@ -156,28 +161,6 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
 
       {/* Labeling Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Timer */}
-        <div className="p-4 border rounded-lg bg-card">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Timer size={20} />
-              <span className="font-semibold">Labeling Time:</span>
-              <span className="font-mono text-2xl">{formatTime(elapsedTime)}</span>
-            </div>
-            <button
-              type="button"
-              onClick={toggleTimer}
-              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-                isTimerRunning
-                  ? "bg-red-500 text-white hover:bg-red-600"
-                  : "bg-green-500 text-white hover:bg-green-600"
-              }`}
-            >
-              {isTimerRunning ? "Stop" : "Start"}
-            </button>
-          </div>
-        </div>
-
         {/* Labels */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Speaker 1 */}
@@ -187,7 +170,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
             </label>
             <select
               value={speaker1Label}
-              onChange={(e) => setSpeaker1Label(e.target.value)}
+              onChange={(e) => handleMorphSelection(setSpeaker1Label)(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background"
               required
             >
@@ -207,7 +190,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
             </label>
             <select
               value={speaker2Label}
-              onChange={(e) => setSpeaker2Label(e.target.value)}
+              onChange={(e) => handleMorphSelection(setSpeaker2Label)(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg bg-background"
               required
             >
@@ -264,15 +247,33 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
           </div>
         </div>
 
-        {/* Comments */}
-        <div className="space-y-3">
-          <label className="block font-semibold">Comments</label>
-          <textarea
-            value={comments}
-            onChange={(e) => setComments(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg bg-background min-h-[100px]"
-            placeholder="Add any observations or notes..."
-          />
+        {/* Comments (per speaker) */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Speaker 1 Comments */}
+          <div className="space-y-3">
+            <label className="block font-semibold">
+              Participant {video.participant1Id} Comments
+            </label>
+            <textarea
+              value={speaker1Comments}
+              onChange={(e) => setSpeaker1Comments(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background min-h-[100px]"
+              placeholder="Add observations for this participant..."
+            />
+          </div>
+
+          {/* Speaker 2 Comments */}
+          <div className="space-y-3">
+            <label className="block font-semibold">
+              Participant {video.participant2Id} Comments
+            </label>
+            <textarea
+              value={speaker2Comments}
+              onChange={(e) => setSpeaker2Comments(e.target.value)}
+              className="w-full px-3 py-2 border rounded-lg bg-background min-h-[100px]"
+              placeholder="Add observations for this participant..."
+            />
+          </div>
         </div>
 
         {/* Error Message */}
