@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useImperativeHandle, forwardRef } from "react";
+import { useEffect, useRef, useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { Play, Pause } from "lucide-react";
 
 interface SynchronizedVideoPlayerProps {
@@ -72,26 +72,7 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
     };
   }, []);
 
-  // Spacebar to toggle play/pause
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in an input or textarea
-      const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
-        return;
-      }
-
-      if (e.code === "Space") {
-        e.preventDefault();
-        togglePlayPause();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isPlaying]);
-
-  const togglePlayPause = () => {
+  const togglePlayPause = useCallback(() => {
     const video1 = video1Ref.current;
     const video2 = video2Ref.current;
 
@@ -113,7 +94,26 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
     }
 
     setIsPlaying(!isPlaying);
-  };
+  }, [isPlaying, onFirstPlay]);
+
+  // Spacebar to toggle play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [togglePlayPause]);
 
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     const time = parseFloat(e.target.value);

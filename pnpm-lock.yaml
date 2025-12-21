@@ -49,6 +49,9 @@ dependencies:
     version: 5.0.9(@types/react@18.3.27)(react@18.3.1)
 
 devDependencies:
+  '@eslint/eslintrc':
+    specifier: ^3.3.3
+    version: 3.3.3
   '@playwright/test':
     specifier: ^1.57.0
     version: 1.57.0
