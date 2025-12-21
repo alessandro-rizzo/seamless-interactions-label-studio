@@ -27,7 +27,8 @@ export async function POST(request: NextRequest) {
       speaker2Label,
       speaker1Confidence,
       speaker2Confidence,
-      comments,
+      speaker1Comments,
+      speaker2Comments,
       labelingTimeMs,
     } = body;
 
@@ -44,7 +45,8 @@ export async function POST(request: NextRequest) {
         speaker2Label,
         speaker1Confidence,
         speaker2Confidence,
-        comments,
+        speaker1Comments,
+        speaker2Comments,
         labelingTimeMs,
         updatedAt: new Date(),
       },
@@ -59,7 +61,8 @@ export async function POST(request: NextRequest) {
         speaker2Label,
         speaker1Confidence,
         speaker2Confidence,
-        comments,
+        speaker1Comments,
+        speaker2Comments,
         labelingTimeMs,
       },
     });

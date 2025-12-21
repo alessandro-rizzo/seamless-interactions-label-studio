@@ -144,10 +144,11 @@ V00_S0001_I00000001_P0002,improvised,dev,0,0`;
 
     it('should mark interactions as downloaded when files exist', async () => {
       mockFs.existsSync.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdirSync.mockReturnValue([
         'V00_S0001_I00000001_P0001.mp4',
         'V00_S0001_I00000001_P0002.mp4',
-      ] as unknown as fs.Dirent[]);
+      ] as any);
 
       const result = await checkDownloadedInteractions(mockInteractions);
 
@@ -158,10 +159,11 @@ V00_S0001_I00000001_P0002,improvised,dev,0,0`;
 
     it('should require both participant files to mark as downloaded', async () => {
       mockFs.existsSync.mockReturnValue(true);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdirSync.mockReturnValue([
         'V00_S0001_I00000001_P0001.mp4',
         // Missing P0002
-      ] as unknown as fs.Dirent[]);
+      ] as any);
 
       const result = await checkDownloadedInteractions(mockInteractions);
 

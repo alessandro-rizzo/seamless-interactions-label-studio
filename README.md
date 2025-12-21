@@ -155,7 +155,8 @@ The `Annotation` model stores:
 | `speaker2Label` | String | Morph label for speaker 2 |
 | `speaker1Confidence` | Int | Confidence score for speaker 1 (1-5) |
 | `speaker2Confidence` | Int | Confidence score for speaker 2 (1-5) |
-| `comments` | String | Optional comments |
+| `speaker1Comments` | String | Optional comments for speaker 1 |
+| `speaker2Comments` | String | Optional comments for speaker 2 |
 | `labelingTimeMs` | Int | Time spent labeling (milliseconds) |
 | `createdAt` | DateTime | Creation timestamp |
 | `updatedAt` | DateTime | Last update timestamp |
@@ -237,7 +238,7 @@ pnpm start
 
 **POST /api/annotations**
 - Creates or updates an annotation
-- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, comments, labelingTimeMs }`
+- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, labelingTimeMs }`
 
 **DELETE /api/annotations?videoId={videoId}**
 - Deletes an annotation by videoId

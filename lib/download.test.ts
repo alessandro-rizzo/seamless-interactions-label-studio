@@ -87,12 +87,13 @@ describe('download', () => {
     it('should return stats for downloaded files', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.mkdirSync.mockReturnValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdirSync.mockReturnValue([
         'V1_S1_I1_P1.mp4',
         'V1_S1_I1_P2.mp4',
         'V1_S1_I2_P3.mp4',
         'some_other_file.txt',
-      ] as unknown as string[]);
+      ] as any);
       mockFs.statSync.mockReturnValue({ size: 1000000 } as fs.Stats);
 
       const stats = getDownloadStats();
@@ -126,10 +127,11 @@ describe('download', () => {
     it('should handle files with different sizes', () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.mkdirSync.mockReturnValue(undefined);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       mockFs.readdirSync.mockReturnValue([
         'video1.mp4',
         'video2.mp4',
-      ] as unknown as string[]);
+      ] as any);
 
       let callCount = 0;
       mockFs.statSync.mockImplementation(() => {
