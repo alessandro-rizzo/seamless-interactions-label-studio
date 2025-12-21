@@ -143,8 +143,8 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
           ref={videoPlayerRef}
           video1Src={video.participant1VideoPath}
           video2Src={video.participant2VideoPath}
-          participant1Label={`Participant ${video.participant1Id}`}
-          participant2Label={`Participant ${video.participant2Id}`}
+          participant1Label={`V${video.vendorId} · S${video.sessionId} · I${video.interactionId} · P${video.participant1Id}`}
+          participant2Label={`V${video.vendorId} · S${video.sessionId} · I${video.interactionId} · P${video.participant2Id}`}
           onFirstPlay={handleFirstPlay}
         />
       </div>
@@ -164,72 +164,66 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         {/* Labels and Confidence */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Speaker 1 */}
-          <div className="space-y-3">
-            <label className="block font-semibold">Label</label>
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2">
-                {MORPH_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => handleMorphSelection(setSpeaker1Label)(option)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      speaker1Label === option
-                        ? "bg-primary text-primary-foreground"
-                        : "border bg-background hover:bg-accent"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Confidence:</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={speaker1Confidence}
-                  onChange={(e) => setSpeaker1Confidence(parseInt(e.target.value))}
-                  className="flex-1"
-                />
-                <span className="font-mono w-4 text-center">{speaker1Confidence}</span>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              {MORPH_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleMorphSelection(setSpeaker1Label)(option)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    speaker1Label === option
+                      ? "bg-primary text-primary-foreground"
+                      : "border bg-background hover:bg-accent"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Confidence:</span>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={speaker1Confidence}
+                onChange={(e) => setSpeaker1Confidence(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="font-mono w-4 text-center">{speaker1Confidence}</span>
             </div>
           </div>
 
           {/* Speaker 2 */}
-          <div className="space-y-3">
-            <label className="block font-semibold">Label</label>
-            <div className="flex items-center gap-4">
-              <div className="flex gap-2">
-                {MORPH_OPTIONS.map((option) => (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => handleMorphSelection(setSpeaker2Label)(option)}
-                    className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                      speaker2Label === option
-                        ? "bg-primary text-primary-foreground"
-                        : "border bg-background hover:bg-accent"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
-              <div className="flex-1 flex items-center gap-2">
-                <span className="text-sm text-muted-foreground">Confidence:</span>
-                <input
-                  type="range"
-                  min="1"
-                  max="5"
-                  value={speaker2Confidence}
-                  onChange={(e) => setSpeaker2Confidence(parseInt(e.target.value))}
-                  className="flex-1"
-                />
-                <span className="font-mono w-4 text-center">{speaker2Confidence}</span>
-              </div>
+          <div className="flex items-center gap-4">
+            <div className="flex gap-2">
+              {MORPH_OPTIONS.map((option) => (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => handleMorphSelection(setSpeaker2Label)(option)}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    speaker2Label === option
+                      ? "bg-primary text-primary-foreground"
+                      : "border bg-background hover:bg-accent"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+            <div className="flex-1 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Confidence:</span>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={speaker2Confidence}
+                onChange={(e) => setSpeaker2Confidence(parseInt(e.target.value))}
+                className="flex-1"
+              />
+              <span className="font-mono w-4 text-center">{speaker2Confidence}</span>
             </div>
           </div>
         </div>
@@ -237,26 +231,20 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         {/* Comments (per speaker) */}
         <div className="grid md:grid-cols-2 gap-6">
           {/* Speaker 1 Comments */}
-          <div className="space-y-3">
-            <label className="block font-semibold">Comments</label>
-            <textarea
-              value={speaker1Comments}
-              onChange={(e) => setSpeaker1Comments(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg bg-background min-h-[200px]"
-              placeholder="Add observations..."
-            />
-          </div>
+          <textarea
+            value={speaker1Comments}
+            onChange={(e) => setSpeaker1Comments(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-background min-h-[200px]"
+            placeholder="Add observations..."
+          />
 
           {/* Speaker 2 Comments */}
-          <div className="space-y-3">
-            <label className="block font-semibold">Comments</label>
-            <textarea
-              value={speaker2Comments}
-              onChange={(e) => setSpeaker2Comments(e.target.value)}
-              className="w-full px-3 py-2 border rounded-lg bg-background min-h-[200px]"
-              placeholder="Add observations..."
-            />
-          </div>
+          <textarea
+            value={speaker2Comments}
+            onChange={(e) => setSpeaker2Comments(e.target.value)}
+            className="w-full px-3 py-2 border rounded-lg bg-background min-h-[200px]"
+            placeholder="Add observations..."
+          />
         </div>
 
         {/* Error Message */}

@@ -60,12 +60,10 @@ describe('LabelingForm', () => {
     render(<LabelingForm video={mockVideo} existingAnnotation={null} />);
 
     // Check participant labels
-    expect(screen.getByText(`Participant ${mockVideo.participant1Id}`)).toBeInTheDocument();
-    expect(screen.getByText(`Participant ${mockVideo.participant2Id}`)).toBeInTheDocument();
+    expect(screen.getByText(`V${mockVideo.vendorId} · S${mockVideo.sessionId} · I${mockVideo.interactionId} · P${mockVideo.participant1Id}`)).toBeInTheDocument();
+    expect(screen.getByText(`V${mockVideo.vendorId} · S${mockVideo.sessionId} · I${mockVideo.interactionId} · P${mockVideo.participant2Id}`)).toBeInTheDocument();
 
     // Check form elements
-    expect(screen.getAllByText('Label')).toHaveLength(2);
-    expect(screen.getAllByText('Comments')).toHaveLength(2);
     expect(screen.getByText('Save Annotation')).toBeInTheDocument();
     expect(screen.getByText('Back to List')).toBeInTheDocument();
   });

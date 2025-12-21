@@ -137,12 +137,12 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
     <div className="space-y-4">
       <div className="grid md:grid-cols-2 gap-4">
         {/* Video 1 */}
-        <div className="flex flex-col gap-2">
-          <h3 className="font-semibold text-lg">{participant1Label}</h3>
-          <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant1Label}</span>
+          <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
             <video
               ref={video1Ref}
-              className="w-full h-full"
+              className="w-full h-full max-h-[68vh] object-contain"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             >
@@ -152,12 +152,12 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
         </div>
 
         {/* Video 2 */}
-        <div className="flex flex-col gap-2">
-          <h3 className="font-semibold text-lg">{participant2Label}</h3>
-          <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
+        <div className="flex flex-col gap-1">
+          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant2Label}</span>
+          <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
             <video
               ref={video2Ref}
-              className="w-full h-full"
+              className="w-full h-full max-h-[68vh] object-contain"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             >
