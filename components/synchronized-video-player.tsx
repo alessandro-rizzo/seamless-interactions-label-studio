@@ -72,6 +72,25 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
     };
   }, []);
 
+  // Spacebar to toggle play/pause
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in an input or textarea
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        return;
+      }
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isPlaying]);
+
   const togglePlayPause = () => {
     const video1 = video1Ref.current;
     const video2 = video2Ref.current;
