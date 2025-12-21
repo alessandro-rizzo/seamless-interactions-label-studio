@@ -16,7 +16,7 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 - 🧹 **Clear Annotations** - Delete annotation records with confirmation
 - 📊 **Statistics Dashboard** - View morph distribution, completion rates, and time metrics
 - 🔍 **Advanced Filtering** - Filter by download status, annotation status, and interaction type (improvised/naturalistic)
-- 💾 **Persistent Storage** - SQLite database that survives app restarts
+- 💾 **Persistent Storage** - PostgreSQL database for reliable persistence
 - 📤 **Export Options** - Download annotations as CSV or JSON
 - 🎨 **Dark Mode UI** - Modern dark theme optimized for extended use
 - ⚡ **Fast & Local** - Runs entirely on your machine
@@ -25,33 +25,55 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 
 - **Node.js** 18+ ([install](https://nodejs.org/) or use [nvm](https://github.com/nvm-sh/nvm))
 - **pnpm** package manager: `npm install -g pnpm`
+- **PostgreSQL** database:
+  - **Option 1:** [Docker](https://www.docker.com/) (easiest - we provide docker-compose.yml)
+  - **Option 2:** Hosted PostgreSQL ([Neon](https://neon.tech), [Supabase](https://supabase.com), etc.)
 - **Internet connection** (to fetch video list and download videos)
 
-That's it! No Python required. Everything is fetched on-demand from S3.
+No Python required. Everything is fetched on-demand from S3.
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Start PostgreSQL
+
+```bash
+# Using Docker (recommended)
+docker-compose up -d
+```
+
+### 2. Install Dependencies
 
 ```bash
 cd seamless-interactions-label-studio
 pnpm install
 ```
 
-### 2. Setup Database
+### 3. Setup Environment
 
 ```bash
-pnpm prisma generate
-pnpm prisma db push
+# Copy environment variables
+cp .env.local .env
 ```
 
-### 3. Start Development Server
+### 4. Setup Database
+
+```bash
+# Push schema to database
+pnpm db:push
+
+# Import video metadata
+pnpm db:import
+```
+
+### 5. Start Development Server
 
 ```bash
 pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+**See [SETUP.md](./SETUP.md) for detailed setup instructions, production deployment, and troubleshooting.**
 
 ## Usage Guide
 
@@ -129,8 +151,7 @@ seamless-interactions-label-studio/
 │   ├── dataset-remote.ts       # Remote dataset listing from GitHub
 │   └── utils.ts                # Helper functions
 ├── prisma/                      # Database
-│   ├── schema.prisma           # Database schema definition
-│   └── dev.db                  # SQLite database (gitignored)
+│   └── schema.prisma           # Database schema definition
 ├── downloads/                   # Downloaded videos (gitignored)
 ├── jest.config.js              # Jest configuration
 ├── jest.setup.js               # Jest setup with mocks
@@ -203,13 +224,18 @@ The project includes a GitHub Actions workflow (`.github/workflows/pr.yml`) that
 
 View/edit database directly:
 ```bash
-pnpm prisma studio
+pnpm db:studio
 ```
 
 Reset database:
 ```bash
-rm prisma/dev.db
-pnpm prisma db push
+# Drop all tables and re-create
+pnpm db:push --accept-data-loss
+
+# Or using Docker, restart the container
+docker-compose down -v
+docker-compose up -d
+pnpm db:push
 ```
 
 ### Building for Production
@@ -224,7 +250,7 @@ pnpm start
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Database**: [SQLite](https://www.sqlite.org/) + [Prisma ORM](https://www.prisma.io/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/)
 - **Testing**: [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/) + [Playwright](https://playwright.dev/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
@@ -292,14 +318,16 @@ Videos are typically 30-50 MB each and download directly from S3. Download speed
 
 ```bash
 # Regenerate Prisma client
-pnpm prisma generate
+pnpm db:generate
 
 # Reset database (warning: deletes all data)
-rm prisma/dev.db
-pnpm prisma db push
+pnpm db:push --accept-data-loss
 
 # View database
-pnpm prisma studio
+pnpm db:studio
+
+# Check Docker container is running
+docker ps | grep postgres
 ```
 
 ### Build or type errors
@@ -335,10 +363,12 @@ Videos are automatically grouped by interaction ID. Each interaction must have e
 
 - Videos are streamed directly from disk (not loaded into memory)
 - Range requests enable seeking without full download
-- SQLite provides fast local queries (<1ms for most operations)
+- PostgreSQL provides fast queries with proper indexing
+- Video metadata cached in database for instant access
 - Server components pre-render where possible
 - Production build optimizes bundle size
 - Filelist cached for 24 hours to reduce GitHub API calls
+- 5-minute page revalidation for optimal performance
 
 ## License
 
@@ -347,7 +377,8 @@ This tool is created for research purposes. The Seamless Interaction Dataset has
 ## Support
 
 - Review this README for common issues
+- See [SETUP.md](./SETUP.md) for detailed setup and troubleshooting
 - Check the Seamless Interaction Dataset [documentation](https://github.com/facebookresearch/seamless_interaction)
 - Inspect browser console for client-side errors
 - Check terminal output for server-side errors
-- Use `pnpm prisma studio` to inspect database state
+- Use `pnpm db:studio` to inspect database state

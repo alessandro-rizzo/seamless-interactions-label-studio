@@ -5,8 +5,8 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model Annotation {
@@ -43,4 +43,43 @@ model Annotation {
 
   @@unique([videoId])
   @@index([createdAt])
+}
+
+model Video {
+  id              String   @id @default(cuid())
+
+  // Video identifiers
+  videoId         String   @unique // Format: V{vendor}_S{session}_I{interaction}
+  vendorId        Int
+  sessionId       Int
+  interactionId   Int
+
+  // Participants
+  participant1Id  String   // Can be alphanumeric (e.g., "0799", "0299A")
+  participant2Id  String   // Can be alphanumeric
+
+  // Dataset metadata
+  label           String   // 'improvised' or 'naturalistic'
+  split           String   // 'train', 'dev', or 'test'
+
+  // File references
+  fileId1         String   // Full file ID for participant 1
+  fileId2         String   // Full file ID for participant 2
+
+  // Archive information
+  batchIdx        Int
+  archiveIdx      Int
+
+  // Download status
+  isDownloaded    Boolean  @default(false)
+  participant1Path String?
+  participant2Path String?
+
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([videoId])
+  @@index([label, split])
+  @@index([isDownloaded])
 }

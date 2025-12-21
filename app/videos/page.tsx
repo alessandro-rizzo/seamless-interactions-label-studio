@@ -1,17 +1,45 @@
 import { prisma } from "@/lib/db";
 import { VideoList } from "@/components/video-list";
-import { listRemoteInteractions, checkDownloadedInteractions } from "@/lib/dataset-remote";
 
 // Force dynamic rendering - page is too large to pre-render (64,000+ videos)
 export const dynamic = 'force-dynamic';
 
+// Cache for 5 minutes
+export const revalidate = 300;
+
 export default async function VideosPage() {
-  const [interactions, annotations] = await Promise.all([
-    listRemoteInteractions().then(checkDownloadedInteractions),
+  // Query videos directly from database
+  const [videos, annotations] = await Promise.all([
+    prisma.video.findMany({
+      orderBy: [
+        { vendorId: 'asc' },
+        { sessionId: 'asc' },
+        { interactionId: 'asc' },
+      ],
+    }),
     prisma.annotation.findMany({
       select: { videoId: true },
     }),
   ]);
+
+  // Convert Video model to InteractionInfo format for compatibility
+  const interactions = videos.map(video => ({
+    videoId: video.videoId,
+    vendorId: video.vendorId,
+    sessionId: video.sessionId,
+    interactionId: video.interactionId,
+    participant1Id: video.participant1Id,
+    participant2Id: video.participant2Id,
+    label: video.label,
+    split: video.split,
+    fileId1: video.fileId1,
+    fileId2: video.fileId2,
+    batchIdx: video.batchIdx,
+    archiveIdx: video.archiveIdx,
+    isDownloaded: video.isDownloaded,
+    participant1Path: video.participant1Path || undefined,
+    participant2Path: video.participant2Path || undefined,
+  }));
 
   const annotatedVideoIds = new Set(annotations.map((a) => a.videoId));
 
