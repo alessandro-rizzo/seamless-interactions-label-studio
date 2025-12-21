@@ -193,6 +193,7 @@ export async function listRemoteInteractions(): Promise<InteractionInfo[]> {
 
 /**
  * Check which interactions are already downloaded
+ * Optimized: reads directory once and checks against a Set
  */
 export async function checkDownloadedInteractions(interactions: InteractionInfo[]): Promise<InteractionInfo[]> {
   const downloadDir = path.join(process.cwd(), 'downloads');
@@ -201,17 +202,30 @@ export async function checkDownloadedInteractions(interactions: InteractionInfo[
     return interactions;
   }
 
-  return interactions.map(interaction => {
-    const p1Path = path.join(downloadDir, `${interaction.fileId1}.mp4`);
-    const p2Path = path.join(downloadDir, `${interaction.fileId2}.mp4`);
+  // Read directory once and create a Set of downloaded files
+  const downloadedFiles = new Set<string>();
+  try {
+    const files = fs.readdirSync(downloadDir);
+    for (const file of files) {
+      if (file.endsWith('.mp4')) {
+        downloadedFiles.add(file);
+      }
+    }
+  } catch {
+    return interactions;
+  }
 
-    const isDownloaded = fs.existsSync(p1Path) && fs.existsSync(p2Path);
+  return interactions.map(interaction => {
+    const p1File = `${interaction.fileId1}.mp4`;
+    const p2File = `${interaction.fileId2}.mp4`;
+
+    const isDownloaded = downloadedFiles.has(p1File) && downloadedFiles.has(p2File);
 
     return {
       ...interaction,
       isDownloaded,
-      participant1Path: isDownloaded ? p1Path : undefined,
-      participant2Path: isDownloaded ? p2Path : undefined,
+      participant1Path: isDownloaded ? path.join(downloadDir, p1File) : undefined,
+      participant2Path: isDownloaded ? path.join(downloadDir, p2File) : undefined,
     };
   });
 }

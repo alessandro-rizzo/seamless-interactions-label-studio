@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { Download, Trash2, Check, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import type { InteractionInfo } from "@/lib/dataset-remote";
@@ -12,6 +12,18 @@ interface VideoListProps {
 
 const ITEMS_PER_PAGE = 20;
 
+// Debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
 export function VideoList({ interactions: initialInteractions, annotatedVideoIds }: VideoListProps) {
   const [interactions, setInteractions] = useState(initialInteractions);
   const [downloading, setDownloading] = useState<Set<string>>(new Set());
@@ -21,6 +33,9 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
   const [labelFilter, setLabelFilter] = useState<"all" | "improvised" | "naturalistic">("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Debounce search input
+  const debouncedSearch = useDebounce(search, 300);
 
   const handleDownload = async (interaction: InteractionInfo) => {
     setDownloading(prev => new Set([...prev, interaction.videoId]));
@@ -107,25 +122,55 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
     }
   };
 
-  const filteredInteractions = interactions.filter(interaction => {
-    // Download status filter
-    if (filter === "downloaded" && !interaction.isDownloaded) return false;
-    if (filter === "not-downloaded" && interaction.isDownloaded) return false;
+  // Pre-compute filter counts once (memoized)
+  const filterCounts = useMemo(() => {
+    let downloaded = 0;
+    let notDownloaded = 0;
+    let improvised = 0;
+    let naturalistic = 0;
 
-    // Annotated status filter
-    const isAnnotated = annotatedVideoIds.has(interaction.videoId);
-    if (annotatedFilter === "annotated" && !isAnnotated) return false;
-    if (annotatedFilter === "not-annotated" && isAnnotated) return false;
+    for (const i of interactions) {
+      if (i.isDownloaded) downloaded++;
+      else notDownloaded++;
+      if (i.label === "improvised") improvised++;
+      else if (i.label === "naturalistic") naturalistic++;
+    }
 
-    // Label type filter (improvised/naturalistic)
-    if (labelFilter === "improvised" && interaction.label !== "improvised") return false;
-    if (labelFilter === "naturalistic" && interaction.label !== "naturalistic") return false;
+    return {
+      total: interactions.length,
+      downloaded,
+      notDownloaded,
+      annotated: annotatedVideoIds.size,
+      notAnnotated: interactions.length - annotatedVideoIds.size,
+      improvised,
+      naturalistic,
+    };
+  }, [interactions, annotatedVideoIds]);
 
-    // Search filter
-    if (search && !interaction.videoId.toLowerCase().includes(search.toLowerCase())) return false;
+  // Memoized filtered interactions
+  const filteredInteractions = useMemo(() => {
+    const searchLower = debouncedSearch.toLowerCase();
 
-    return true;
-  });
+    return interactions.filter(interaction => {
+      // Download status filter
+      if (filter === "downloaded" && !interaction.isDownloaded) return false;
+      if (filter === "not-downloaded" && interaction.isDownloaded) return false;
+
+      // Annotated status filter
+      const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+      if (annotatedFilter === "annotated" && !isAnnotated) return false;
+      if (annotatedFilter === "not-annotated" && isAnnotated) return false;
+
+      // Label type filter (improvised/naturalistic)
+      if (labelFilter === "improvised" && interaction.label !== "improvised") return false;
+      if (labelFilter === "naturalistic" && interaction.label !== "naturalistic") return false;
+
+      // Search filter (using debounced value)
+      if (searchLower && !interaction.videoId.toLowerCase().includes(searchLower)) return false;
+
+      return true;
+    });
+  }, [interactions, filter, annotatedFilter, labelFilter, debouncedSearch, annotatedVideoIds]);
 
   // Pagination
   const totalPages = Math.ceil(filteredInteractions.length / ITEMS_PER_PAGE);
@@ -161,12 +206,12 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
             onChange={e => handleFilterChange(e.target.value as any)}
             className="px-4 py-2 border rounded-lg bg-background"
           >
-            <option value="all">All ({interactions.length})</option>
+            <option value="all">All ({filterCounts.total})</option>
             <option value="downloaded">
-              Downloaded ({interactions.filter(i => i.isDownloaded).length})
+              Downloaded ({filterCounts.downloaded})
             </option>
             <option value="not-downloaded">
-              Not Downloaded ({interactions.filter(i => !i.isDownloaded).length})
+              Not Downloaded ({filterCounts.notDownloaded})
             </option>
           </select>
 
@@ -178,12 +223,12 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
             }}
             className="px-4 py-2 border rounded-lg bg-background"
           >
-            <option value="all">All Status ({interactions.length})</option>
+            <option value="all">All Status ({filterCounts.total})</option>
             <option value="annotated">
-              Annotated ({Array.from(annotatedVideoIds).length})
+              Annotated ({filterCounts.annotated})
             </option>
             <option value="not-annotated">
-              Not Annotated ({interactions.length - Array.from(annotatedVideoIds).length})
+              Not Annotated ({filterCounts.notAnnotated})
             </option>
           </select>
 
@@ -195,12 +240,12 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
             }}
             className="px-4 py-2 border rounded-lg bg-background"
           >
-            <option value="all">All Types ({interactions.length})</option>
+            <option value="all">All Types ({filterCounts.total})</option>
             <option value="improvised">
-              Improvised ({interactions.filter(i => i.label === "improvised").length})
+              Improvised ({filterCounts.improvised})
             </option>
             <option value="naturalistic">
-              Naturalistic ({interactions.filter(i => i.label === "naturalistic").length})
+              Naturalistic ({filterCounts.naturalistic})
             </option>
           </select>
         </div>
