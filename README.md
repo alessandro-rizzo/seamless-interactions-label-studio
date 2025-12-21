@@ -8,11 +8,11 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 - 📥 **On-Demand Downloads** - Download specific videos directly from S3 (no Python required!)
 - 🗑️ **Disk Management** - Delete videos from disk after annotation to save space
 - 📹 **Synchronized Dual Video Player** - Watch both participants side-by-side with frame-perfect synchronization
-- ⏱️ **Built-in Timer** - Track annotation time with start/stop controls (auto-stops on save)
+- ⏱️ **Automatic Time Tracking** - Labeling time calculated from first video play to last morph selection
 - ✅ **Progress Tracking** - Visual indicators showing completed vs. pending annotations
 - 🏷️ **Binary Labeling** - Label each speaker as Morph A or Morph B
 - 🎯 **Per-Speaker Confidence** - Individual confidence scoring for each speaker (1-5 scale)
-- 💬 **Comments** - Add observations and notes to each annotation
+- 💬 **Per-Speaker Comments** - Add individual observations and notes for each speaker
 - 🧹 **Clear Annotations** - Delete annotation records with confirmation
 - 📊 **Statistics Dashboard** - View morph distribution, completion rates, and time metrics
 - 🔍 **Advanced Filtering** - Filter by download status, annotation status, and interaction type (improvised/naturalistic)
@@ -67,7 +67,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 5. **Start Timer** - Begin timing when you start analyzing the interaction
 6. **Label Speakers** - Select Morph A or Morph B for each participant
 7. **Set Confidence** - Use individual sliders for each speaker's confidence (1=low, 5=high)
-8. **Add Comments** - Include any observations or notes (optional)
+8. **Add Comments** - Include per-speaker observations and notes (optional)
 9. **Save** - Timer and video automatically stop when you save
 10. **Clear Annotation** - Use "Clear Annotation" button to delete the record if needed
 11. **Clean Up** - Delete the video from disk using the trash icon to save space
@@ -112,8 +112,15 @@ seamless-interactions-label-studio/
 │   └── globals.css              # Tailwind styles
 ├── components/                   # React components
 │   ├── labeling-form.tsx        # Annotation form with timer and controls
+│   ├── labeling-form.test.tsx   # Component tests
 │   ├── synchronized-video-player.tsx  # Dual video player with sync
-│   └── video-list.tsx           # Filterable video list with pagination
+│   ├── synchronized-video-player.test.tsx
+│   ├── video-list.tsx           # Filterable video list with pagination
+│   ├── video-list.test.tsx
+│   ├── video-player.tsx         # Single video player component
+│   └── video-player.test.tsx
+├── e2e/                         # Playwright end-to-end tests
+│   └── labeling-workflow.spec.ts  # Full labeling workflow test
 ├── lib/                         # Core utilities
 │   ├── db.ts                   # Prisma client singleton
 │   ├── dataset.ts              # Local dataset scanning
@@ -123,6 +130,9 @@ seamless-interactions-label-studio/
 │   ├── schema.prisma           # Database schema definition
 │   └── dev.db                  # SQLite database (gitignored)
 ├── downloads/                   # Downloaded videos (gitignored)
+├── jest.config.js              # Jest configuration
+├── jest.setup.js               # Jest setup with mocks
+├── playwright.config.ts        # Playwright configuration
 └── package.json                 # Dependencies and scripts
 ```
 
@@ -152,13 +162,31 @@ The `Annotation` model stores:
 
 ### Running Tests
 
+**Unit Tests (Jest + React Testing Library)**
 ```bash
-# Run all tests
+# Run all unit tests with coverage
 pnpm test
 
 # Watch mode
 pnpm test:watch
 ```
+
+**End-to-End Tests (Playwright)**
+```bash
+# Run e2e tests (starts dev server automatically)
+pnpm test:e2e
+
+# Run with UI mode for debugging
+pnpm test:e2e:ui
+```
+
+The e2e test covers the complete labeling workflow:
+- Landing on homepage and checking initial stats
+- Navigating to videos list and downloading a video
+- Playing video, selecting morphs, setting confidence, adding comments
+- Saving annotation and verifying stats update
+- Exporting JSON and CSV to verify data
+- Cleanup (deleting annotation and downloaded video)
 
 ### Database Management
 
@@ -186,6 +214,7 @@ pnpm start
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Database**: [SQLite](https://www.sqlite.org/) + [Prisma ORM](https://www.prisma.io/)
+- **Testing**: [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/) + [Playwright](https://playwright.dev/)
 - **Icons**: [Lucide React](https://lucide.dev/)
 - **Package Manager**: [pnpm](https://pnpm.io/)
 
