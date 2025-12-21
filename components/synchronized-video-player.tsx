@@ -46,6 +46,10 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
 
     if (!video1 || !video2) return;
 
+    // Set volume to maximum by default
+    video1.volume = 1.0;
+    video2.volume = 1.0;
+
     const handleTimeUpdate = () => {
       setCurrentTime(video1.currentTime);
     };
@@ -108,7 +112,7 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
         {/* Video 1 */}
         <div className="flex flex-col gap-2">
           <h3 className="font-semibold text-lg">{participant1Label}</h3>
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
             <video
               ref={video1Ref}
               className="w-full h-full"
@@ -123,7 +127,7 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
         {/* Video 2 */}
         <div className="flex flex-col gap-2">
           <h3 className="font-semibold text-lg">{participant2Label}</h3>
-          <div className="relative aspect-video bg-black rounded-lg overflow-hidden">
+          <div className="relative aspect-[4/3] bg-black rounded-lg overflow-hidden">
             <video
               ref={video2Ref}
               className="w-full h-full"
