@@ -84,16 +84,10 @@ export default async function Home() {
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Total Videos</h3>
           <p className="text-3xl font-bold mt-2">{formatNumber(downloadedVideos)}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalVideosInDataset > 0 ? ((downloadedVideos / totalVideosInDataset) * 100).toFixed(1) : 0}% of {formatNumber(totalVideosInDataset)} total
-          </p>
         </div>
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Annotated Videos</h3>
           <p className="text-3xl font-bold mt-2">{formatNumber(annotatedVideos)}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {downloadedVideos > 0 ? ((annotatedVideos / downloadedVideos) * 100).toFixed(1) : 0}% of downloaded
-          </p>
         </div>
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Labeled Speakers</h3>

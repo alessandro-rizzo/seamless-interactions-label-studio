@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
-import { Download, Trash2, Check, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { InteractionInfo } from "@/lib/dataset-remote";
 
 interface VideoListProps {
@@ -24,11 +24,7 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function VideoList({ interactions: initialInteractions, annotatedVideoIds }: VideoListProps) {
-  const [interactions, setInteractions] = useState(initialInteractions);
-  const [downloading, setDownloading] = useState<Set<string>>(new Set());
-  const [deleting, setDeleting] = useState<Set<string>>(new Set());
-  const [filter, setFilter] = useState<"all" | "downloaded" | "not-downloaded">("all");
+export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
   const [annotatedFilter, setAnnotatedFilter] = useState<"all" | "annotated" | "not-annotated">("all");
   const [labelFilter, setLabelFilter] = useState<"all" | "improvised" | "naturalistic">("all");
   const [search, setSearch] = useState("");
@@ -37,109 +33,18 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
   // Debounce search input
   const debouncedSearch = useDebounce(search, 300);
 
-  const handleDownload = async (interaction: InteractionInfo) => {
-    setDownloading(prev => new Set([...prev, interaction.videoId]));
-
-    try {
-      const response = await fetch("/api/download", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          fileId1: interaction.fileId1,
-          fileId2: interaction.fileId2,
-          label: interaction.label,
-          split: interaction.split,
-          batchIdx: interaction.batchIdx,
-        }),
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setInteractions(prev =>
-          prev.map(i =>
-            i.videoId === interaction.videoId
-              ? {
-                  ...i,
-                  isDownloaded: true,
-                  participant1Path: result.participant1Path,
-                  participant2Path: result.participant2Path,
-                }
-              : i
-          )
-        );
-      } else {
-        const error = await response.json();
-        alert(`Failed to download video: ${error.error || response.statusText}`);
-      }
-    } catch (error) {
-      console.error("Download error:", error);
-      alert("Error downloading video");
-    } finally {
-      setDownloading(prev => {
-        const next = new Set(prev);
-        next.delete(interaction.videoId);
-        return next;
-      });
-    }
-  };
-
-  const handleDelete = async (interaction: InteractionInfo) => {
-    if (!confirm("Delete this downloaded video?")) return;
-
-    setDeleting(prev => new Set([...prev, interaction.videoId]));
-
-    try {
-      const response = await fetch(
-        `/api/download?fileId1=${interaction.fileId1}&fileId2=${interaction.fileId2}`,
-        { method: "DELETE" }
-      );
-
-      if (response.ok) {
-        setInteractions(prev =>
-          prev.map(i =>
-            i.videoId === interaction.videoId
-              ? {
-                  ...i,
-                  isDownloaded: false,
-                  participant1Path: undefined,
-                  participant2Path: undefined,
-                }
-              : i
-          )
-        );
-      } else {
-        alert("Failed to delete video");
-      }
-    } catch (error) {
-      console.error("Delete error:", error);
-      alert("Error deleting video");
-    } finally {
-      setDeleting(prev => {
-        const next = new Set(prev);
-        next.delete(interaction.videoId);
-        return next;
-      });
-    }
-  };
-
   // Pre-compute filter counts once (memoized)
   const filterCounts = useMemo(() => {
-    let downloaded = 0;
-    let notDownloaded = 0;
     let improvised = 0;
     let naturalistic = 0;
 
     for (const i of interactions) {
-      if (i.isDownloaded) downloaded++;
-      else notDownloaded++;
       if (i.label === "improvised") improvised++;
       else if (i.label === "naturalistic") naturalistic++;
     }
 
     return {
       total: interactions.length,
-      downloaded,
-      notDownloaded,
       annotated: annotatedVideoIds.size,
       notAnnotated: interactions.length - annotatedVideoIds.size,
       improvised,
@@ -152,10 +57,6 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
     const searchLower = debouncedSearch.toLowerCase();
 
     return interactions.filter(interaction => {
-      // Download status filter
-      if (filter === "downloaded" && !interaction.isDownloaded) return false;
-      if (filter === "not-downloaded" && interaction.isDownloaded) return false;
-
       // Annotated status filter
       const isAnnotated = annotatedVideoIds.has(interaction.videoId);
       if (annotatedFilter === "annotated" && !isAnnotated) return false;
@@ -170,19 +71,13 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
 
       return true;
     });
-  }, [interactions, filter, annotatedFilter, labelFilter, debouncedSearch, annotatedVideoIds]);
+  }, [interactions, annotatedFilter, labelFilter, debouncedSearch, annotatedVideoIds]);
 
   // Pagination
   const totalPages = Math.ceil(filteredInteractions.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = startIndex + ITEMS_PER_PAGE;
   const paginatedInteractions = filteredInteractions.slice(startIndex, endIndex);
-
-  // Reset to page 1 when filters change
-  const handleFilterChange = (newFilter: typeof filter) => {
-    setFilter(newFilter);
-    setCurrentPage(1);
-  };
 
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
@@ -200,21 +95,7 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
           onChange={e => handleSearchChange(e.target.value)}
           className="w-full px-4 py-2 border rounded-lg bg-background"
         />
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <select
-            value={filter}
-            onChange={e => handleFilterChange(e.target.value as any)}
-            className="px-4 py-2 border rounded-lg bg-background"
-          >
-            <option value="all">All ({filterCounts.total})</option>
-            <option value="downloaded">
-              Downloaded ({filterCounts.downloaded})
-            </option>
-            <option value="not-downloaded">
-              Not Downloaded ({filterCounts.notDownloaded})
-            </option>
-          </select>
-
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
             value={annotatedFilter}
             onChange={e => {
@@ -273,8 +154,6 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
         <div className="grid gap-4">
           {paginatedInteractions.map(interaction => {
             const isAnnotated = annotatedVideoIds.has(interaction.videoId);
-            const isDownloading = downloading.has(interaction.videoId);
-            const isDeleting = deleting.has(interaction.videoId);
 
             return (
               <div
@@ -285,13 +164,8 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
                   <div className="flex items-center gap-3">
                     <h2 className="text-lg font-semibold">{interaction.videoId}</h2>
                     {isAnnotated && (
-                      <span className="text-green-600 text-xl" title="Annotated">
-                        ✓
-                      </span>
-                    )}
-                    {interaction.isDownloaded && (
-                      <span className="px-2 py-1 text-xs rounded bg-blue-500/20 text-blue-400">
-                        Downloaded
+                      <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
+                        Annotated
                       </span>
                     )}
                   </div>
@@ -304,44 +178,12 @@ export function VideoList({ interactions: initialInteractions, annotatedVideoIds
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                  {interaction.isDownloaded ? (
-                    <>
-                      <Link
-                        href={`/videos/${interaction.videoId}`}
-                        className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                      >
-                        Label →
-                      </Link>
-                      <button
-                        onClick={() => handleDelete(interaction)}
-                        disabled={isDeleting}
-                        className="p-2 border rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-colors disabled:opacity-50"
-                        title="Delete from disk"
-                      >
-                        {isDeleting ? <Loader2 size={20} className="animate-spin" /> : <Trash2 size={20} />}
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleDownload(interaction)}
-                      disabled={isDownloading}
-                      className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
-                    >
-                      {isDownloading ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          Downloading...
-                        </>
-                      ) : (
-                        <>
-                          <Download size={16} />
-                          Download
-                        </>
-                      )}
-                    </button>
-                  )}
-                </div>
+                <Link
+                  href={`/videos/${interaction.videoId}`}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                >
+                  {isAnnotated ? "Edit" : "Label"} →
+                </Link>
               </div>
             );
           })}

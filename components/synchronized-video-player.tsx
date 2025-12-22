@@ -138,7 +138,6 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
       <div className="grid md:grid-cols-2 gap-4">
         {/* Video 1 */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant1Label}</span>
           <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
             <video
               ref={video1Ref}
@@ -146,14 +145,14 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             >
-              <source src={`/api/video?path=${encodeURIComponent(video1Src)}`} type="video/mp4" />
+              <source src={video1Src} type="video/mp4" />
             </video>
           </div>
+          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant1Label}</span>
         </div>
 
         {/* Video 2 */}
         <div className="flex flex-col gap-1">
-          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant2Label}</span>
           <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
             <video
               ref={video2Ref}
@@ -161,9 +160,10 @@ export const SynchronizedVideoPlayer = forwardRef<SynchronizedVideoPlayerRef, Sy
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             >
-              <source src={`/api/video?path=${encodeURIComponent(video2Src)}`} type="video/mp4" />
+              <source src={video2Src} type="video/mp4" />
             </video>
           </div>
+          <span className="text-xs font-mono text-muted-foreground tracking-wide">{participant2Label}</span>
         </div>
       </div>
 

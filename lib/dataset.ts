@@ -1,10 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-// Path to the seamless_interaction dataset
-const DATASET_PATH = path.join(process.env.HOME || '', 'personal', 'seamless_interaction');
-// Path to downloaded videos
-const DOWNLOADS_PATH = path.join(process.cwd(), 'downloads');
+import { prisma } from './db';
 
 export interface VideoMetadata {
   vendorId: number;
@@ -13,121 +7,51 @@ export interface VideoMetadata {
   participant1Id: string;
   participant2Id: string;
   videoId: string; // V{vendor}_S{session}_I{interaction}
-  participant1VideoPath: string;
-  participant2VideoPath: string;
+  participant1VideoPath: string; // Now contains S3 URL or streaming endpoint path
+  participant2VideoPath: string; // Now contains S3 URL or streaming endpoint path
+  fileId1: string; // File ID for participant 1
+  fileId2: string; // File ID for participant 2
+  label: string; // 'improvised' or 'naturalistic'
+  split: string; // 'train', 'dev', or 'test'
   metadataPath?: string;
   metadata?: any;
 }
 
 /**
- * Parse file ID from filename using pattern: V{vendor}_S{session}_I{interaction}_P{participant}
- * Participant ID can be numeric or alphanumeric (e.g., 0799, 0299A)
+ * Construct streaming endpoint URL for a video file
  */
-export function parseFileId(filename: string): {
-  vendorId: number;
-  sessionId: number;
-  interactionId: number;
-  participantId: string;
-} | null {
-  const match = filename.match(/V(\d+)_S(\d+)_I(\d+)_P([0-9A-Za-z]+)/);
-  if (!match) return null;
-
-  return {
-    vendorId: parseInt(match[1]),
-    sessionId: parseInt(match[2]),
-    interactionId: parseInt(match[3]),
-    participantId: match[4], // Keep as string to handle alphanumeric IDs
-  };
+function getStreamingUrl(fileId: string, label: string, split: string): string {
+  return `/api/video?fileId=${encodeURIComponent(fileId)}&label=${encodeURIComponent(label)}&split=${encodeURIComponent(split)}`;
 }
 
 /**
- * Get all available videos from the dataset
- * Scans for .mp4 files and groups them by interaction
+ * Get all available videos from the database
+ * Constructs streaming URLs dynamically from video metadata
  */
 export async function getAvailableVideos(): Promise<VideoMetadata[]> {
-  const videos: Map<string, VideoMetadata> = new Map();
-
   try {
-    // Check both dataset path and downloads path
-    const pathsToScan = [DATASET_PATH, DOWNLOADS_PATH].filter(p => fs.existsSync(p));
+    const videos = await prisma.video.findMany({
+      orderBy: {
+        videoId: 'asc',
+      },
+    });
 
-    if (pathsToScan.length === 0) {
-      console.warn(`No video paths found. Checked: ${DATASET_PATH}, ${DOWNLOADS_PATH}`);
-      return [];
-    }
-
-    // Recursively find all .mp4 files
-    const findVideos = (dir: string) => {
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-      for (const entry of entries) {
-        const fullPath = path.join(dir, entry.name);
-
-        if (entry.isDirectory()) {
-          // Skip .venv and .git directories
-          if (entry.name === '.venv' || entry.name === '.git' || entry.name === 'node_modules') {
-            continue;
-          }
-          findVideos(fullPath);
-        } else if (entry.name.endsWith('.mp4')) {
-          const parsed = parseFileId(entry.name);
-          if (!parsed) continue;
-
-          const { vendorId, sessionId, interactionId, participantId } = parsed;
-
-          // Extract videoId from filename to preserve leading zeros
-          const videoIdMatch = entry.name.match(/(V\d+_S\d+_I\d+)_P/);
-          const videoId = videoIdMatch ? videoIdMatch[1] : `V${vendorId}_S${sessionId}_I${interactionId}`;
-
-          if (!videos.has(videoId)) {
-            videos.set(videoId, {
-              vendorId,
-              sessionId,
-              interactionId,
-              participant1Id: '',
-              participant2Id: '',
-              videoId,
-              participant1VideoPath: '',
-              participant2VideoPath: '',
-            });
-          }
-
-          const video = videos.get(videoId)!;
-
-          // Assign to participant 1 or 2 based on order found
-          if (!video.participant1VideoPath) {
-            video.participant1Id = participantId;
-            video.participant1VideoPath = fullPath;
-          } else if (!video.participant2VideoPath) {
-            video.participant2Id = participantId;
-            video.participant2VideoPath = fullPath;
-          }
-
-          // Look for metadata JSON file
-          const metadataPath = fullPath.replace('.mp4', '_metadata.json');
-          if (fs.existsSync(metadataPath)) {
-            video.metadataPath = metadataPath;
-            try {
-              video.metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'));
-            } catch (e) {
-              console.error(`Failed to parse metadata: ${metadataPath}`, e);
-            }
-          }
-        }
-      }
-    };
-
-    // Scan all available paths
-    pathsToScan.forEach(p => findVideos(p));
-
-    // Filter out videos that don't have both participants
-    const completeVideos = Array.from(videos.values()).filter(
-      (v) => v.participant1VideoPath && v.participant2VideoPath
-    );
-
-    return completeVideos;
+    return videos.map((video) => ({
+      vendorId: video.vendorId,
+      sessionId: video.sessionId,
+      interactionId: video.interactionId,
+      participant1Id: video.participant1Id,
+      participant2Id: video.participant2Id,
+      videoId: video.videoId,
+      participant1VideoPath: getStreamingUrl(video.fileId1, video.label, video.split),
+      participant2VideoPath: getStreamingUrl(video.fileId2, video.label, video.split),
+      fileId1: video.fileId1,
+      fileId2: video.fileId2,
+      label: video.label,
+      split: video.split,
+    }));
   } catch (error) {
-    console.error('Error scanning dataset:', error);
+    console.error('Error fetching videos from database:', error);
     return [];
   }
 }
@@ -136,20 +60,55 @@ export async function getAvailableVideos(): Promise<VideoMetadata[]> {
  * Get video metadata by video ID
  */
 export async function getVideoById(videoId: string): Promise<VideoMetadata | null> {
-  const videos = await getAvailableVideos();
-  return videos.find((v) => v.videoId === videoId) || null;
+  try {
+    const video = await prisma.video.findUnique({
+      where: { videoId },
+    });
+
+    if (!video) {
+      return null;
+    }
+
+    return {
+      vendorId: video.vendorId,
+      sessionId: video.sessionId,
+      interactionId: video.interactionId,
+      participant1Id: video.participant1Id,
+      participant2Id: video.participant2Id,
+      videoId: video.videoId,
+      participant1VideoPath: getStreamingUrl(video.fileId1, video.label, video.split),
+      participant2VideoPath: getStreamingUrl(video.fileId2, video.label, video.split),
+      fileId1: video.fileId1,
+      fileId2: video.fileId2,
+      label: video.label,
+      split: video.split,
+    };
+  } catch (error) {
+    console.error('Error fetching video by ID:', error);
+    return null;
+  }
 }
 
 /**
  * Calculate dataset statistics
  */
 export async function getDatasetStats() {
-  const videos = await getAvailableVideos();
+  try {
+    const videos = await getAvailableVideos();
 
-  return {
-    totalVideos: videos.length,
-    totalSpeakers: videos.length * 2,
-    uniqueVendors: new Set(videos.map((v) => v.vendorId)).size,
-    uniqueSessions: new Set(videos.map((v) => `${v.vendorId}_${v.sessionId}`)).size,
-  };
+    return {
+      totalVideos: videos.length,
+      totalSpeakers: videos.length * 2,
+      uniqueVendors: new Set(videos.map((v) => v.vendorId)).size,
+      uniqueSessions: new Set(videos.map((v) => `${v.vendorId}_${v.sessionId}`)).size,
+    };
+  } catch (error) {
+    console.error('Error calculating dataset stats:', error);
+    return {
+      totalVideos: 0,
+      totalSpeakers: 0,
+      uniqueVendors: 0,
+      uniqueSessions: 0,
+    };
+  }
 }

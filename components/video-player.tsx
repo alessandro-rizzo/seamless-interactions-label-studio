@@ -36,7 +36,7 @@ export function VideoPlayer({ src, label, onReady }: VideoPlayerProps) {
             controls
             onError={() => setError("Failed to load video")}
           >
-            <source src={`/api/video?path=${encodeURIComponent(src)}`} type="video/mp4" />
+            <source src={src} type="video/mp4" />
             Your browser does not support the video tag.
           </video>
         )}
