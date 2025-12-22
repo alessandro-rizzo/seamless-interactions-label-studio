@@ -62,18 +62,9 @@ model Video {
   label           String   // 'improvised' or 'naturalistic'
   split           String   // 'train', 'dev', or 'test'
 
-  // File references
+  // File references (used to construct streaming URLs)
   fileId1         String   // Full file ID for participant 1
   fileId2         String   // Full file ID for participant 2
-
-  // Archive information
-  batchIdx        Int
-  archiveIdx      Int
-
-  // Download status
-  isDownloaded    Boolean  @default(false)
-  participant1Path String?
-  participant2Path String?
 
   // Timestamps
   createdAt       DateTime @default(now())
@@ -81,5 +72,4 @@ model Video {
 
   @@index([videoId])
   @@index([label, split])
-  @@index([isDownloaded])
 }

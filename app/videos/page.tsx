@@ -34,11 +34,6 @@ export default async function VideosPage() {
     split: video.split,
     fileId1: video.fileId1,
     fileId2: video.fileId2,
-    batchIdx: video.batchIdx,
-    archiveIdx: video.archiveIdx,
-    isDownloaded: video.isDownloaded,
-    participant1Path: video.participant1Path || undefined,
-    participant2Path: video.participant2Path || undefined,
   }));
 
   const annotatedVideoIds = new Set(annotations.map((a) => a.videoId));

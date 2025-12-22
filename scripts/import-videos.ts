@@ -130,8 +130,6 @@ async function importVideos() {
       split: string;
       fileId1: string;
       fileId2: string;
-      batchIdx: number;
-      archiveIdx: number;
     }>();
 
     for (const entry of filelist) {
@@ -155,8 +153,6 @@ async function importVideos() {
           split: entry.split,
           fileId1: entry.file_id,
           fileId2: '',
-          batchIdx: parseInt(entry.batch_idx),
-          archiveIdx: parseInt(entry.archive_idx),
         });
       } else {
         const interaction = interactionMap.get(videoId)!;
@@ -172,20 +168,6 @@ async function importVideos() {
 
     console.log(`✅ Found ${completeInteractions.length} complete interactions (with both participants)\n`);
 
-    // Check which videos are already downloaded
-    const downloadDir = path.join(process.cwd(), 'downloads');
-    const downloadedFiles = new Set<string>();
-
-    if (fs.existsSync(downloadDir)) {
-      const files = fs.readdirSync(downloadDir);
-      for (const file of files) {
-        if (file.endsWith('.mp4')) {
-          downloadedFiles.add(file);
-        }
-      }
-      console.log(`📥 Found ${downloadedFiles.size} downloaded video files\n`);
-    }
-
     // Import in batches
     const batchSize = 1000;
     let imported = 0;
@@ -198,10 +180,6 @@ async function importVideos() {
 
       await Promise.all(
         batch.map(async (interaction) => {
-          const p1File = `${interaction.fileId1}.mp4`;
-          const p2File = `${interaction.fileId2}.mp4`;
-          const isDownloaded = downloadedFiles.has(p1File) && downloadedFiles.has(p2File);
-
           const data = {
             videoId: interaction.videoId,
             vendorId: interaction.vendorId,
@@ -213,11 +191,6 @@ async function importVideos() {
             split: interaction.split,
             fileId1: interaction.fileId1,
             fileId2: interaction.fileId2,
-            batchIdx: interaction.batchIdx,
-            archiveIdx: interaction.archiveIdx,
-            isDownloaded,
-            participant1Path: isDownloaded ? path.join(downloadDir, p1File) : null,
-            participant2Path: isDownloaded ? path.join(downloadDir, p2File) : null,
           };
 
           try {
@@ -246,11 +219,6 @@ async function importVideos() {
     console.log(`   📊 Total interactions: ${completeInteractions.length}`);
     console.log(`   ✨ New records: ${imported}`);
     console.log(`   🔄 Updated records: ${updated}`);
-    console.log(`   📥 Downloaded: ${Array.from(interactionMap.values()).filter(i => {
-      const p1File = `${i.fileId1}.mp4`;
-      const p2File = `${i.fileId2}.mp4`;
-      return downloadedFiles.has(p1File) && downloadedFiles.has(p2File);
-    }).length}`);
 
   } catch (error) {
     console.error('❌ Import failed:', error);
