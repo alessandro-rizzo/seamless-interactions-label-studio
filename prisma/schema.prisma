@@ -42,6 +42,7 @@ model Annotation {
   updatedAt         DateTime @updatedAt
 
   @@unique([videoId])
+  @@index([videoId])
   @@index([createdAt])
 }
 
@@ -72,4 +73,5 @@ model Video {
 
   @@index([videoId])
   @@index([label, split])
+  @@index([vendorId, sessionId, interactionId])
 }

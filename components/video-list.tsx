@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { VideoMetadata } from "@/lib/dataset";
-
-interface VideoListProps {
-  interactions: VideoMetadata[];
-  annotatedVideoIds: Set<string>;
-}
 
 const ITEMS_PER_PAGE = 20;
 
@@ -24,7 +19,25 @@ function useDebounce<T>(value: T, delay: number): T {
   return debouncedValue;
 }
 
-export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
+interface FilterCounts {
+  total: number;
+  annotated: number;
+  notAnnotated: number;
+  improvised: number;
+  naturalistic: number;
+}
+
+interface ApiResponse {
+  interactions: VideoMetadata[];
+  annotatedVideoIds: string[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  filterCounts: FilterCounts;
+}
+
+export function VideoList() {
   const [annotatedFilter, setAnnotatedFilter] = useState<
     "all" | "annotated" | "not-annotated"
   >("all");
@@ -33,78 +46,72 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
   >("all");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [data, setData] = useState<ApiResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Debounce search input
   const debouncedSearch = useDebounce(search, 300);
 
-  // Pre-compute filter counts once (memoized)
-  const filterCounts = useMemo(() => {
-    let improvised = 0;
-    let naturalistic = 0;
+  // Fetch data when filters or page change
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const params = new URLSearchParams({
+          page: currentPage.toString(),
+          limit: ITEMS_PER_PAGE.toString(),
+          search: debouncedSearch,
+          annotatedFilter,
+          labelFilter,
+        });
 
-    for (const i of interactions) {
-      if (i.label === "improvised") improvised++;
-      else if (i.label === "naturalistic") naturalistic++;
-    }
+        const response = await fetch(`/api/videos?${params}`);
+        if (!response.ok) {
+          throw new Error("Failed to fetch videos");
+        }
 
-    return {
-      total: interactions.length,
-      annotated: annotatedVideoIds.size,
-      notAnnotated: interactions.length - annotatedVideoIds.size,
-      improvised,
-      naturalistic,
+        const result = await response.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "An error occurred");
+      } finally {
+        setLoading(false);
+      }
     };
-  }, [interactions, annotatedVideoIds]);
 
-  // Memoized filtered interactions
-  const filteredInteractions = useMemo(() => {
-    const searchLower = debouncedSearch.toLowerCase();
-
-    return interactions.filter((interaction) => {
-      // Annotated status filter
-      const isAnnotated = annotatedVideoIds.has(interaction.videoId);
-      if (annotatedFilter === "annotated" && !isAnnotated) return false;
-      if (annotatedFilter === "not-annotated" && isAnnotated) return false;
-
-      // Label type filter (improvised/naturalistic)
-      if (labelFilter === "improvised" && interaction.label !== "improvised")
-        return false;
-      if (
-        labelFilter === "naturalistic" &&
-        interaction.label !== "naturalistic"
-      )
-        return false;
-
-      // Search filter (using debounced value)
-      if (
-        searchLower &&
-        !interaction.videoId.toLowerCase().includes(searchLower)
-      )
-        return false;
-
-      return true;
-    });
-  }, [
-    interactions,
-    annotatedFilter,
-    labelFilter,
-    debouncedSearch,
-    annotatedVideoIds,
-  ]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredInteractions.length / ITEMS_PER_PAGE);
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const paginatedInteractions = filteredInteractions.slice(
-    startIndex,
-    endIndex,
-  );
+    fetchData();
+  }, [currentPage, debouncedSearch, annotatedFilter, labelFilter]);
 
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
     setCurrentPage(1);
   };
+
+  const annotatedVideoIds = new Set(data?.annotatedVideoIds || []);
+
+  if (error) {
+    return (
+      <div className="p-8 border rounded-lg bg-card text-center">
+        <p className="text-red-500">Error: {error}</p>
+      </div>
+    );
+  }
+
+  const filterCounts = data?.filterCounts || {
+    total: 0,
+    annotated: 0,
+    notAnnotated: 0,
+    improvised: 0,
+    naturalistic: 0,
+  };
+
+  const totalPages = data?.totalPages || 0;
+  const total = data?.total || 0;
+  const interactions = data?.interactions || [];
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, total);
 
   return (
     <div className="space-y-4">
@@ -116,6 +123,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
           value={search}
           onChange={(e) => handleSearchChange(e.target.value)}
           className="w-full px-4 py-2 border rounded-lg bg-background"
+          disabled={loading}
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <select
@@ -125,6 +133,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
               setCurrentPage(1);
             }}
             className="px-4 py-2 border rounded-lg bg-background"
+            disabled={loading}
           >
             <option value="all">All Status ({filterCounts.total})</option>
             <option value="annotated">
@@ -142,6 +151,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
               setCurrentPage(1);
             }}
             className="px-4 py-2 border rounded-lg bg-background"
+            disabled={loading}
           >
             <option value="all">All Types ({filterCounts.total})</option>
             <option value="improvised">
@@ -157,9 +167,13 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
       {/* Results count and pagination info */}
       <div className="flex items-center justify-between text-sm text-muted-foreground">
         <div>
-          Showing {startIndex + 1}-
-          {Math.min(endIndex, filteredInteractions.length)} of{" "}
-          {filteredInteractions.length} videos
+          {loading ? (
+            "Loading..."
+          ) : (
+            <>
+              Showing {startIndex + 1}-{endIndex} of {total} videos
+            </>
+          )}
         </div>
         {totalPages > 1 && (
           <div>
@@ -169,7 +183,11 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
       </div>
 
       {/* Video Grid */}
-      {filteredInteractions.length === 0 ? (
+      {loading ? (
+        <div className="p-8 border rounded-lg bg-card text-center">
+          <p className="text-muted-foreground">Loading videos...</p>
+        </div>
+      ) : interactions.length === 0 ? (
         <div className="p-8 border rounded-lg bg-card text-center">
           <p className="text-muted-foreground">
             No videos found matching your filters
@@ -177,7 +195,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
         </div>
       ) : (
         <div className="grid gap-4">
-          {paginatedInteractions.map((interaction) => {
+          {interactions.map((interaction) => {
             const isAnnotated = annotatedVideoIds.has(interaction.videoId);
 
             return (
@@ -223,7 +241,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
         <div className="flex items-center justify-center gap-2 pt-4">
           <button
             onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1}
+            disabled={currentPage === 1 || loading}
             className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ChevronLeft size={16} />
@@ -236,7 +254,8 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
               <>
                 <button
                   onClick={() => setCurrentPage(1)}
-                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors"
+                  disabled={loading}
+                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
                 >
                   1
                 </button>
@@ -253,7 +272,8 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
-                  className={`px-3 py-2 border rounded-lg transition-colors ${
+                  disabled={loading}
+                  className={`px-3 py-2 border rounded-lg transition-colors disabled:opacity-50 ${
                     page === currentPage
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-accent"
@@ -271,7 +291,8 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
                 )}
                 <button
                   onClick={() => setCurrentPage(totalPages)}
-                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors"
+                  disabled={loading}
+                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
                 >
                   {totalPages}
                 </button>
@@ -283,7 +304,7 @@ export function VideoList({ interactions, annotatedVideoIds }: VideoListProps) {
             onClick={() =>
               setCurrentPage((prev) => Math.min(totalPages, prev + 1))
             }
-            disabled={currentPage === totalPages}
+            disabled={currentPage === totalPages || loading}
             className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next
