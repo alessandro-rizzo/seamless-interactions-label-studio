@@ -3,10 +3,10 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { InteractionInfo } from "@/lib/dataset-remote";
+import type { VideoMetadata } from "@/lib/dataset";
 
 interface VideoListProps {
-  interactions: InteractionInfo[];
+  interactions: VideoMetadata[];
   annotatedVideoIds: Set<string>;
 }
 

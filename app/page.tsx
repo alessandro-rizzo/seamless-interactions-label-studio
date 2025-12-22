@@ -1,21 +1,18 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getAvailableVideos } from "@/lib/dataset";
-import { listRemoteInteractions } from "@/lib/dataset-remote";
 import { formatTime, formatNumber } from "@/lib/utils";
 import { Download } from "lucide-react";
 
 export default async function Home() {
-  const [videos, allRemoteVideos, annotations] = await Promise.all([
+  const [videos, annotations] = await Promise.all([
     getAvailableVideos(),
-    listRemoteInteractions(),
     prisma.annotation.findMany({
       orderBy: { createdAt: "desc" },
     }),
   ]);
 
-  const totalVideosInDataset = allRemoteVideos.length;
-  const downloadedVideos = videos.length;
+  const totalVideosInDataset = videos.length;
   const annotatedVideos = annotations.length;
   const totalSpeakers = annotatedVideos * 2;
 
@@ -83,7 +80,7 @@ export default async function Home() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Total Videos</h3>
-          <p className="text-3xl font-bold mt-2">{formatNumber(downloadedVideos)}</p>
+          <p className="text-3xl font-bold mt-2">{formatNumber(totalVideosInDataset)}</p>
         </div>
         <div className="p-6 border rounded-lg bg-card">
           <h3 className="text-sm font-medium text-muted-foreground">Annotated Videos</h3>

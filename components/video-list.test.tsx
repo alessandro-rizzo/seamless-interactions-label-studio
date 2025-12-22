@@ -1,44 +1,39 @@
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { VideoList } from './video-list';
-import type { InteractionInfo } from '@/lib/dataset-remote';
+import type { VideoMetadata } from '@/lib/dataset';
 
 // Mock fetch
 global.fetch = jest.fn();
 
 describe('VideoList', () => {
-  const createMockInteraction = (overrides: Partial<InteractionInfo> = {}): InteractionInfo => ({
+  const createMockInteraction = (overrides: Partial<VideoMetadata> = {}): VideoMetadata => ({
     videoId: 'V00_S0001_I00000001',
     vendorId: 0,
     sessionId: 1,
     interactionId: 1,
     participant1Id: '0001',
     participant2Id: '0002',
+    participant1VideoPath: '/api/video?fileId=V00_S0001_I00000001_P0001&label=improvised&split=dev',
+    participant2VideoPath: '/api/video?fileId=V00_S0001_I00000001_P0002&label=improvised&split=dev',
     label: 'improvised',
     split: 'dev',
     fileId1: 'V00_S0001_I00000001_P0001',
     fileId2: 'V00_S0001_I00000001_P0002',
-    batchIdx: 0,
-    archiveIdx: 0,
-    isDownloaded: false,
     ...overrides,
   });
 
-  const mockInteractions: InteractionInfo[] = [
-    createMockInteraction({ videoId: 'V00_S0001_I00000001', isDownloaded: true }),
-    createMockInteraction({ videoId: 'V00_S0001_I00000002', isDownloaded: false }),
-    createMockInteraction({ videoId: 'V00_S0001_I00000003', label: 'naturalistic', isDownloaded: true }),
-    createMockInteraction({ videoId: 'V00_S0001_I00000004', label: 'naturalistic', isDownloaded: false }),
+  const mockInteractions: VideoMetadata[] = [
+    createMockInteraction({ videoId: 'V00_S0001_I00000001' }),
+    createMockInteraction({ videoId: 'V00_S0001_I00000002' }),
+    createMockInteraction({ videoId: 'V00_S0001_I00000003', label: 'naturalistic' }),
+    createMockInteraction({ videoId: 'V00_S0001_I00000004', label: 'naturalistic' }),
   ];
 
   const mockAnnotatedVideoIds = new Set(['V00_S0001_I00000001']);
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: () => Promise.resolve({ success: true }),
-    });
   });
 
   it('should render list of videos', () => {
@@ -78,34 +73,18 @@ describe('VideoList', () => {
   it('should show filter dropdowns with counts', () => {
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
 
-    expect(screen.getByText('All (4)')).toBeInTheDocument();
-    expect(screen.getByText('Downloaded (2)')).toBeInTheDocument();
-    expect(screen.getByText('Not Downloaded (2)')).toBeInTheDocument();
+    expect(screen.getByText('All Status (4)')).toBeInTheDocument();
     expect(screen.getByText('Annotated (1)')).toBeInTheDocument();
     expect(screen.getByText('Not Annotated (3)')).toBeInTheDocument();
     expect(screen.getByText('Improvised (2)')).toBeInTheDocument();
     expect(screen.getByText('Naturalistic (2)')).toBeInTheDocument();
   });
 
-  it('should filter by download status', async () => {
-    const user = userEvent.setup();
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-
-    const downloadFilter = screen.getAllByRole('combobox')[0];
-    await user.selectOptions(downloadFilter, 'downloaded');
-
-    // Only downloaded videos should be visible
-    expect(screen.getByText('V00_S0001_I00000001')).toBeInTheDocument();
-    expect(screen.getByText('V00_S0001_I00000003')).toBeInTheDocument();
-    expect(screen.queryByText('V00_S0001_I00000002')).not.toBeInTheDocument();
-    expect(screen.queryByText('V00_S0001_I00000004')).not.toBeInTheDocument();
-  });
-
   it('should filter by annotated status', async () => {
     const user = userEvent.setup();
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
 
-    const annotatedFilter = screen.getAllByRole('combobox')[1];
+    const annotatedFilter = screen.getAllByRole('combobox')[0];
     await user.selectOptions(annotatedFilter, 'annotated');
 
     // Only annotated videos should be visible
@@ -117,7 +96,7 @@ describe('VideoList', () => {
     const user = userEvent.setup();
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
 
-    const labelFilter = screen.getAllByRole('combobox')[2];
+    const labelFilter = screen.getAllByRole('combobox')[1];
     await user.selectOptions(labelFilter, 'naturalistic');
 
     // Only naturalistic videos should be visible
@@ -127,97 +106,32 @@ describe('VideoList', () => {
     expect(screen.queryByText('V00_S0001_I00000002')).not.toBeInTheDocument();
   });
 
-  it('should show annotated indicator for annotated videos', () => {
+  it('should show Annotated chip for annotated videos', () => {
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-
-    // The annotated video should have a checkmark
-    const annotatedCard = screen.getByText('V00_S0001_I00000001').closest('div[class*="border"]');
-    expect(annotatedCard).toHaveTextContent('V00_S0001_I00000001');
+    expect(screen.getByText('Annotated')).toBeInTheDocument();
   });
 
-  it('should show Downloaded badge for downloaded videos', () => {
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-    expect(screen.getAllByText('Downloaded')).toHaveLength(2);
-  });
-
-  it('should show Download button for not downloaded videos', () => {
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-    expect(screen.getAllByText('Download')).toHaveLength(2);
-  });
-
-  it('should show Label button for downloaded videos', () => {
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-    expect(screen.getAllByText('Label →')).toHaveLength(2);
-  });
-
-  it('should call download API when Download is clicked', async () => {
-    const user = userEvent.setup();
+  it('should show Label button for all videos', () => {
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
 
-    const downloadButtons = screen.getAllByText('Download');
-    await user.click(downloadButtons[0]);
+    // Annotated video shows "Edit"
+    expect(screen.getByText('Edit →')).toBeInTheDocument();
 
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/download', expect.objectContaining({
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      }));
-    });
-  });
-
-  it('should show downloading state', async () => {
-    const user = userEvent.setup();
-    let resolvePromise: (value: any) => void;
-    (global.fetch as jest.Mock).mockImplementation(() =>
-      new Promise(resolve => {
-        resolvePromise = resolve;
-      })
-    );
-
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-
-    const downloadButtons = screen.getAllByText('Download');
-    await user.click(downloadButtons[0]);
-
-    expect(screen.getByText('Downloading...')).toBeInTheDocument();
-
-    // Resolve the promise
-    await act(async () => {
-      resolvePromise!({ ok: true, json: () => Promise.resolve({ success: true }) });
-    });
-  });
-
-  it('should call delete API when delete is clicked', async () => {
-    const user = userEvent.setup();
-    render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
-
-    // Find delete buttons (trash icons)
-    const deleteButtons = screen.getAllByTitle('Delete from disk');
-    await user.click(deleteButtons[0]);
-
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.stringContaining('/api/download?fileId1='),
-        { method: 'DELETE' }
-      );
-    });
+    // Non-annotated videos show "Label"
+    expect(screen.getAllByText('Label →')).toHaveLength(3);
   });
 
   it('should show empty state when no videos match filters', async () => {
     const user = userEvent.setup();
     render(<VideoList interactions={mockInteractions} annotatedVideoIds={mockAnnotatedVideoIds} />);
 
-    // Filter to downloaded only
-    const downloadFilter = screen.getAllByRole('combobox')[0];
-    await user.selectOptions(downloadFilter, 'downloaded');
+    // Filter to annotated
+    const annotatedFilter = screen.getAllByRole('combobox')[0];
+    await user.selectOptions(annotatedFilter, 'annotated');
 
-    // Then filter to not annotated
-    const annotatedFilter = screen.getAllByRole('combobox')[1];
-    await user.selectOptions(annotatedFilter, 'not-annotated');
-
-    // Then filter to improvised (there's no downloaded + not-annotated + improvised video)
-    const labelFilter = screen.getAllByRole('combobox')[2];
-    await user.selectOptions(labelFilter, 'improvised');
+    // Then filter to naturalistic (there's no annotated + naturalistic video)
+    const labelFilter = screen.getAllByRole('combobox')[1];
+    await user.selectOptions(labelFilter, 'naturalistic');
 
     expect(screen.getByText('No videos found matching your filters')).toBeInTheDocument();
   });
@@ -226,7 +140,6 @@ describe('VideoList', () => {
     const manyInteractions = Array.from({ length: 50 }, (_, i) =>
       createMockInteraction({
         videoId: `V00_S0001_I${String(i + 1).padStart(8, '0')}`,
-        isDownloaded: i % 2 === 0,
         label: i % 3 === 0 ? 'naturalistic' : 'improvised',
       })
     );
@@ -295,8 +208,8 @@ describe('VideoList', () => {
       expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
 
       // Change filter
-      const downloadFilter = screen.getAllByRole('combobox')[0];
-      await user.selectOptions(downloadFilter, 'downloaded');
+      const annotatedFilter = screen.getAllByRole('combobox')[0];
+      await user.selectOptions(annotatedFilter, 'not-annotated');
 
       // Should be back to page 1
       expect(screen.getByText(/Page 1 of/)).toBeInTheDocument();

@@ -3,29 +3,32 @@
  */
 import { testApiHandler } from 'next-test-api-route-handler';
 import * as appHandler from './route';
-import { Readable } from 'stream';
 
-// Mock fs module
-jest.mock('fs', () => ({
-  existsSync: jest.fn(),
-  statSync: jest.fn(),
-  createReadStream: jest.fn(),
-}));
+// Mock global fetch for S3 requests
+const mockFetch = jest.fn();
+global.fetch = mockFetch as any;
 
-import fs from 'fs';
-
-const mockFs = fs as jest.Mocked<typeof fs>;
+// Helper to create a mock ReadableStream
+function createMockReadableStream(data: string) {
+  return new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(data));
+      controller.close();
+    },
+  });
+}
 
 describe('/api/video', () => {
-  const downloadsPath = `${process.cwd()}/downloads`;
-  const validVideoPath = `${downloadsPath}/V1_S1_I1_P1.mp4`;
+  const validFileId = 'V00_S0644_I00000129_P0799';
+  const label = 'improvised';
+  const split = 'dev';
 
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   describe('GET', () => {
-    it('should return 400 when path parameter is missing', async () => {
+    it('should return 400 when fileId parameter is missing', async () => {
       await testApiHandler({
         appHandler,
         url: '/api/video',
@@ -34,95 +37,64 @@ describe('/api/video', () => {
           const data = await response.json();
 
           expect(response.status).toBe(400);
-          expect(data.error).toBe('Missing path parameter');
+          expect(data.error).toBe('Missing fileId parameter');
         },
       });
     });
 
-    it('should return 403 for invalid path (outside allowed directories)', async () => {
-      await testApiHandler({
-        appHandler,
-        url: '/api/video?path=/etc/passwd',
-        test: async ({ fetch }) => {
-          const response = await fetch({ method: 'GET' });
-          const data = await response.json();
+    it('should stream video from S3 with correct headers (no range request)', async () => {
+      const mockStream = createMockReadableStream('video data');
 
-          expect(response.status).toBe(403);
-          expect(data.error).toBe('Invalid path');
-        },
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        body: mockStream,
+        headers: new Headers({
+          'Content-Type': 'video/mp4',
+          'Content-Length': '1000000',
+        }),
       });
-    });
-
-    it('should return 403 for path traversal attempt', async () => {
-      await testApiHandler({
-        appHandler,
-        url: `/api/video?path=${downloadsPath}/../../../etc/passwd`,
-        test: async ({ fetch }) => {
-          const response = await fetch({ method: 'GET' });
-          const data = await response.json();
-
-          expect(response.status).toBe(403);
-          expect(data.error).toBe('Invalid path');
-        },
-      });
-    });
-
-    it('should return 404 when video file does not exist', async () => {
-      mockFs.existsSync.mockReturnValue(false);
 
       await testApiHandler({
         appHandler,
-        url: `/api/video?path=${validVideoPath}`,
-        test: async ({ fetch }) => {
-          const response = await fetch({ method: 'GET' });
-          const data = await response.json();
-
-          expect(response.status).toBe(404);
-          expect(data.error).toBe('Video not found');
-        },
-      });
-    });
-
-    it('should stream video with correct headers (no range request)', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.statSync.mockReturnValue({ size: 1000000 } as fs.Stats);
-
-      const mockStream = new Readable({
-        read() {
-          this.push(Buffer.from('video data'));
-          this.push(null);
-        },
-      });
-      mockFs.createReadStream.mockReturnValue(mockStream as any);
-
-      await testApiHandler({
-        appHandler,
-        url: `/api/video?path=${validVideoPath}`,
+        url: `/api/video?fileId=${validFileId}&label=${label}&split=${split}`,
         test: async ({ fetch }) => {
           const response = await fetch({ method: 'GET' });
 
           expect(response.status).toBe(200);
           expect(response.headers.get('Content-Type')).toBe('video/mp4');
-          expect(response.headers.get('Content-Length')).toBe('1000000');
+          expect(response.headers.get('Accept-Ranges')).toBe('bytes');
+          expect(response.headers.get('Cache-Control')).toBe('public, max-age=3600');
+
+          // Verify S3 URL was constructed correctly
+          expect(mockFetch).toHaveBeenCalledWith(
+            'https://dl.fbaipublicfiles.com/seamless_interaction/improvised/dev/video/V00_S0644_I00000129_P0799.mp4',
+            expect.objectContaining({
+              headers: {},
+              redirect: 'follow',
+            })
+          );
         },
       });
     });
 
     it('should handle range request (partial content)', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.statSync.mockReturnValue({ size: 1000000 } as fs.Stats);
+      const mockStream = createMockReadableStream('partial video data');
 
-      const mockStream = new Readable({
-        read() {
-          this.push(Buffer.from('partial video data'));
-          this.push(null);
-        },
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 206,
+        body: mockStream,
+        headers: new Headers({
+          'Content-Type': 'video/mp4',
+          'Content-Length': '500',
+          'Content-Range': 'bytes 0-499/1000000',
+        }),
       });
-      mockFs.createReadStream.mockReturnValue(mockStream as any);
 
       await testApiHandler({
         appHandler,
-        url: `/api/video?path=${validVideoPath}`,
+        url: `/api/video?fileId=${validFileId}&label=${label}&split=${split}`,
         test: async ({ fetch }) => {
           const response = await fetch({
             method: 'GET',
@@ -135,60 +107,77 @@ describe('/api/video', () => {
           expect(response.headers.get('Accept-Ranges')).toBe('bytes');
           expect(response.headers.get('Content-Length')).toBe('500');
 
-          expect(mockFs.createReadStream).toHaveBeenCalledWith(
-            validVideoPath,
-            { start: 0, end: 499 }
+          // Verify range header was passed to S3
+          expect(mockFetch).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+              headers: { Range: 'bytes=0-499' },
+            })
           );
         },
       });
     });
 
-    it('should handle range request without end', async () => {
-      mockFs.existsSync.mockReturnValue(true);
-      mockFs.statSync.mockReturnValue({ size: 1000000 } as fs.Stats);
+    it('should use default label and split when not provided', async () => {
+      const mockStream = createMockReadableStream('video data');
 
-      const mockStream = new Readable({
-        read() {
-          this.push(Buffer.from('partial video data'));
-          this.push(null);
-        },
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        body: mockStream,
+        headers: new Headers({
+          'Content-Type': 'video/mp4',
+        }),
       });
-      mockFs.createReadStream.mockReturnValue(mockStream as any);
 
       await testApiHandler({
         appHandler,
-        url: `/api/video?path=${validVideoPath}`,
+        url: `/api/video?fileId=${validFileId}`,
         test: async ({ fetch }) => {
-          const response = await fetch({
-            method: 'GET',
-            headers: { Range: 'bytes=500000-' },
-          });
+          await fetch({ method: 'GET' });
 
-          expect(response.status).toBe(206);
-          expect(response.headers.get('Content-Range')).toBe('bytes 500000-999999/1000000');
-
-          expect(mockFs.createReadStream).toHaveBeenCalledWith(
-            validVideoPath,
-            { start: 500000, end: 999999 }
+          // Verify default label=improvised and split=dev were used
+          expect(mockFetch).toHaveBeenCalledWith(
+            'https://dl.fbaipublicfiles.com/seamless_interaction/improvised/dev/video/V00_S0644_I00000129_P0799.mp4',
+            expect.any(Object)
           );
         },
       });
     });
 
-    it('should return 500 on error', async () => {
-      mockFs.existsSync.mockImplementation(() => {
-        throw new Error('FS error');
+    it('should return 404 when video not found on S3', async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 404,
+        statusText: 'Not Found',
+        headers: new Headers(),
       });
 
       await testApiHandler({
         appHandler,
-        url: `/api/video?path=${validVideoPath}`,
+        url: `/api/video?fileId=${validFileId}&label=${label}&split=${split}`,
+        test: async ({ fetch }) => {
+          const response = await fetch({ method: 'GET' });
+          const data = await response.json();
+
+          expect(response.status).toBe(404);
+          expect(data.error).toContain('Video not found');
+        },
+      });
+    });
+
+    it('should return 500 on fetch error', async () => {
+      mockFetch.mockRejectedValueOnce(new Error('Network error'));
+
+      await testApiHandler({
+        appHandler,
+        url: `/api/video?fileId=${validFileId}&label=${label}&split=${split}`,
         test: async ({ fetch }) => {
           const response = await fetch({ method: 'GET' });
           const data = await response.json();
 
           expect(response.status).toBe(500);
-          expect(data.error).toBe('Internal server error');
+          expect(data.error).toBe('Failed to stream video');
         },
       });
     });

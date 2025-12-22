@@ -1,11 +1,10 @@
 /**
  * Import video metadata from filelist.csv into the database
- * Run with: npx tsx scripts/import-videos.ts
+ * Fetches from GitHub and imports into PostgreSQL
+ * Run with: pnpm db:import
  */
 
 import { PrismaClient } from '@prisma/client';
-import fs from 'fs';
-import path from 'path';
 
 const prisma = new PrismaClient();
 
@@ -41,70 +40,38 @@ function parseFileId(fileId: string): {
 }
 
 /**
- * Load filelist.csv from GitHub or local cache
+ * Load filelist.csv from GitHub
  */
 async function loadFilelist(): Promise<FilelistEntry[]> {
-  const cacheDir = path.join(process.cwd(), '.cache');
-  const cacheFile = path.join(cacheDir, 'filelist.csv');
   const GITHUB_URL = 'https://raw.githubusercontent.com/facebookresearch/seamless_interaction/main/assets/filelist.csv';
 
-  let content: string;
+  console.log('⬇️  Fetching filelist.csv from GitHub...');
 
-  // Check if we have a cached version
-  if (fs.existsSync(cacheFile)) {
-    console.log('📂 Using cached filelist.csv');
-    content = fs.readFileSync(cacheFile, 'utf-8');
-  } else {
-    // Download from GitHub
-    try {
-      console.log('⬇️  Downloading filelist.csv from GitHub...');
-      const response = await fetch(GITHUB_URL);
+  try {
+    const response = await fetch(GITHUB_URL);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch filelist: ${response.statusText}`);
-      }
-
-      content = await response.text();
-
-      // Cache the file
-      if (!fs.existsSync(cacheDir)) {
-        fs.mkdirSync(cacheDir, { recursive: true });
-      }
-      fs.writeFileSync(cacheFile, content, 'utf-8');
-      console.log('✅ Filelist cached successfully');
-    } catch (error) {
-      console.error('❌ Failed to download filelist from GitHub:', error);
-
-      // Try local fallback
-      const localPath = path.join(
-        process.env.HOME || '',
-        'personal',
-        'seamless_interaction',
-        'assets',
-        'filelist.csv'
-      );
-
-      if (fs.existsSync(localPath)) {
-        console.log('📂 Using local fallback filelist');
-        content = fs.readFileSync(localPath, 'utf-8');
-      } else {
-        throw new Error('No filelist available (GitHub failed and no local copy)');
-      }
+    if (!response.ok) {
+      throw new Error(`Failed to fetch filelist: ${response.statusText}`);
     }
-  }
 
-  // Parse CSV
-  const lines = content.trim().split('\n');
-  const headers = lines[0].split(',');
+    const content = await response.text();
 
-  return lines.slice(1).map(line => {
-    const values = line.split(',');
-    const entry: any = {};
-    headers.forEach((header, index) => {
-      entry[header] = values[index];
+    // Parse CSV
+    const lines = content.trim().split('\n');
+    const headers = lines[0].split(',');
+
+    return lines.slice(1).map(line => {
+      const values = line.split(',');
+      const entry: any = {};
+      headers.forEach((header, index) => {
+        entry[header] = values[index];
+      });
+      return entry as FilelistEntry;
     });
-    return entry as FilelistEntry;
-  });
+  } catch (error) {
+    console.error('❌ Failed to fetch filelist from GitHub:', error);
+    throw error;
+  }
 }
 
 /**

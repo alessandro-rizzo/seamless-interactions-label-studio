@@ -3,7 +3,7 @@ import { VideoPlayer } from './video-player';
 
 describe('VideoPlayer', () => {
   const defaultProps = {
-    src: '/path/to/video.mp4',
+    src: '/api/video?fileId=V00_S0001_I00000001_P0001&label=improvised&split=dev',
     label: 'Test Video',
   };
 
@@ -18,7 +18,7 @@ describe('VideoPlayer', () => {
     expect(video).toBeInTheDocument();
 
     const source = video.querySelector('source');
-    expect(source).toHaveAttribute('src', `/api/video?path=${encodeURIComponent(defaultProps.src)}`);
+    expect(source).toHaveAttribute('src', defaultProps.src);
     expect(source).toHaveAttribute('type', 'video/mp4');
   });
 

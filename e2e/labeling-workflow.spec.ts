@@ -19,33 +19,27 @@ test.describe('Labeling Workflow', () => {
     await expect(page).toHaveURL('/videos');
     await expect(page.getByPlaceholder('Search by video ID...')).toBeVisible();
 
-    // Step 3: Find a video that's not downloaded and download it
-    // First, filter to show only not-downloaded videos
-    const downloadFilter = page.locator('select').first();
-    await downloadFilter.selectOption('not-downloaded');
+    // Step 3: Find a video that's not annotated
+    // First, filter to show only not-annotated videos
+    const annotatedFilter = page.locator('select').first();
+    await annotatedFilter.selectOption('not-annotated');
 
     // Wait for the list to update
     await page.waitForTimeout(500);
 
-    // Find the first Download button and click it
-    const downloadButton = page.getByRole('button', { name: 'Download' }).first();
-    await expect(downloadButton).toBeVisible({ timeout: 10000 });
+    // Find the first "Label →" button and click it
+    const labelButton = page.getByRole('link', { name: 'Label →' }).first();
+    await expect(labelButton).toBeVisible({ timeout: 10000 });
 
     // Get the video ID from the same card
-    const videoCard = downloadButton.locator('xpath=ancestor::div[contains(@class, "p-6")]');
+    const videoCard = labelButton.locator('xpath=ancestor::div[contains(@class, "p-6")]');
     const videoIdElement = videoCard.locator('h2').first();
     const videoId = await videoIdElement.textContent();
     expect(videoId).toBeTruthy();
 
-    // Click download and wait for it to complete
-    await downloadButton.click();
-
-    // Wait for "Downloading..." to appear then disappear, and "Label →" to appear
-    await expect(page.getByText('Downloading...')).toBeVisible({ timeout: 5000 });
-    await expect(page.getByText('Downloading...')).toBeHidden({ timeout: 120000 });
-
-    // Step 4: Go to the label page directly
-    await page.goto(`/videos/${videoId}`);
+    // Click the Label button to go to the label page
+    await labelButton.click();
+    await expect(page).toHaveURL(`/videos/${videoId}`);
 
     // Step 5: Play video for a few seconds then stop
     const playButton = page.getByRole('button', { name: 'Play' });
@@ -141,24 +135,6 @@ test.describe('Labeling Workflow', () => {
 
     // Wait for the page to refresh
     await page.waitForTimeout(1000);
-
-    // Step 13: Cleanup - delete the downloaded video
-    await page.goto('/videos');
-
-    // Find the video card by the h2 containing the video ID
-    const videoCardForDelete = page.locator(`div.p-6:has(h2:text("${videoId}"))`);
-    const deleteButton = videoCardForDelete.getByRole('button', { name: 'Delete from disk' });
-
-    // Handle the confirmation dialog
-    page.once('dialog', dialog => dialog.accept());
-    await deleteButton.click();
-
-    // Wait for deletion to complete
-    await page.waitForTimeout(2000);
-
-    // Verify the video is no longer downloaded (should show Download button again)
-    const downloadButtonAgain = videoCardForDelete.getByRole('button', { name: 'Download' });
-    await expect(downloadButtonAgain).toBeVisible({ timeout: 10000 });
 
     // Final verification: go to homepage and check annotation count is back to initial
     await page.goto('/');
