@@ -2,7 +2,10 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { SynchronizedVideoPlayer, SynchronizedVideoPlayerRef } from "./synchronized-video-player";
+import {
+  SynchronizedVideoPlayer,
+  SynchronizedVideoPlayerRef,
+} from "./synchronized-video-player";
 import { Save, ArrowLeft, Trash2 } from "lucide-react";
 import type { VideoMetadata } from "@/lib/dataset";
 import type { Annotation } from "@prisma/client";
@@ -17,17 +20,31 @@ const MORPH_OPTIONS = ["Morph A", "Morph B"];
 export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   const router = useRouter();
   const videoPlayerRef = useRef<SynchronizedVideoPlayerRef>(null);
-  const [speaker1Label, setSpeaker1Label] = useState(existingAnnotation?.speaker1Label || "");
-  const [speaker2Label, setSpeaker2Label] = useState(existingAnnotation?.speaker2Label || "");
-  const [speaker1Confidence, setSpeaker1Confidence] = useState(existingAnnotation?.speaker1Confidence || 3);
-  const [speaker2Confidence, setSpeaker2Confidence] = useState(existingAnnotation?.speaker2Confidence || 3);
-  const [speaker1Comments, setSpeaker1Comments] = useState(existingAnnotation?.speaker1Comments || "");
-  const [speaker2Comments, setSpeaker2Comments] = useState(existingAnnotation?.speaker2Comments || "");
+  const [speaker1Label, setSpeaker1Label] = useState(
+    existingAnnotation?.speaker1Label || "",
+  );
+  const [speaker2Label, setSpeaker2Label] = useState(
+    existingAnnotation?.speaker2Label || "",
+  );
+  const [speaker1Confidence, setSpeaker1Confidence] = useState(
+    existingAnnotation?.speaker1Confidence || 3,
+  );
+  const [speaker2Confidence, setSpeaker2Confidence] = useState(
+    existingAnnotation?.speaker2Confidence || 3,
+  );
+  const [speaker1Comments, setSpeaker1Comments] = useState(
+    existingAnnotation?.speaker1Comments || "",
+  );
+  const [speaker2Comments, setSpeaker2Comments] = useState(
+    existingAnnotation?.speaker2Comments || "",
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   // Time tracking: labeling time = last morph selection time - first video play time
   const firstPlayTimeRef = useRef<number | null>(existingAnnotation ? 0 : null);
-  const lastMorphSelectionTimeRef = useRef<number | null>(existingAnnotation ? existingAnnotation.labelingTimeMs : null);
+  const lastMorphSelectionTimeRef = useRef<number | null>(
+    existingAnnotation ? existingAnnotation.labelingTimeMs : null,
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -39,16 +56,20 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   };
 
   // Track morph selection time
-  const handleMorphSelection = (setter: (value: string) => void) => (value: string) => {
-    setter(value);
-    if (value) {
-      lastMorphSelectionTimeRef.current = Date.now();
-    }
-  };
+  const handleMorphSelection =
+    (setter: (value: string) => void) => (value: string) => {
+      setter(value);
+      if (value) {
+        lastMorphSelectionTimeRef.current = Date.now();
+      }
+    };
 
   // Calculate labeling time in milliseconds
   const calculateLabelingTime = (): number => {
-    if (firstPlayTimeRef.current === null || lastMorphSelectionTimeRef.current === null) {
+    if (
+      firstPlayTimeRef.current === null ||
+      lastMorphSelectionTimeRef.current === null
+    ) {
       return existingAnnotation?.labelingTimeMs || 0;
     }
     return lastMorphSelectionTimeRef.current - firstPlayTimeRef.current;
@@ -109,7 +130,11 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   const handleDelete = async () => {
     if (!existingAnnotation) return;
 
-    if (!confirm("Are you sure you want to delete this annotation? This action cannot be undone.")) {
+    if (
+      !confirm(
+        "Are you sure you want to delete this annotation? This action cannot be undone.",
+      )
+    ) {
       return;
     }
 
@@ -117,9 +142,12 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
     setSaveError(null);
 
     try {
-      const response = await fetch(`/api/annotations?videoId=${encodeURIComponent(video.videoId)}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/annotations?videoId=${encodeURIComponent(video.videoId)}`,
+        {
+          method: "DELETE",
+        },
+      );
 
       if (!response.ok) {
         throw new Error("Failed to delete annotation");
@@ -188,10 +216,14 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
                 min="1"
                 max="5"
                 value={speaker1Confidence}
-                onChange={(e) => setSpeaker1Confidence(parseInt(e.target.value))}
+                onChange={(e) =>
+                  setSpeaker1Confidence(parseInt(e.target.value))
+                }
                 className="flex-1"
               />
-              <span className="font-mono w-4 text-center">{speaker1Confidence}</span>
+              <span className="font-mono w-4 text-center">
+                {speaker1Confidence}
+              </span>
             </div>
           </div>
 
@@ -220,10 +252,14 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
                 min="1"
                 max="5"
                 value={speaker2Confidence}
-                onChange={(e) => setSpeaker2Confidence(parseInt(e.target.value))}
+                onChange={(e) =>
+                  setSpeaker2Confidence(parseInt(e.target.value))
+                }
                 className="flex-1"
               />
-              <span className="font-mono w-4 text-center">{speaker2Confidence}</span>
+              <span className="font-mono w-4 text-center">
+                {speaker2Confidence}
+              </span>
             </div>
           </div>
         </div>

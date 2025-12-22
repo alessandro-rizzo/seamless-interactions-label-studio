@@ -4,7 +4,7 @@
  * Run with: pnpm db:import
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -43,9 +43,10 @@ function parseFileId(fileId: string): {
  * Load filelist.csv from GitHub
  */
 async function loadFilelist(): Promise<FilelistEntry[]> {
-  const GITHUB_URL = 'https://raw.githubusercontent.com/facebookresearch/seamless_interaction/main/assets/filelist.csv';
+  const GITHUB_URL =
+    "https://raw.githubusercontent.com/facebookresearch/seamless_interaction/main/assets/filelist.csv";
 
-  console.log('⬇️  Fetching filelist.csv from GitHub...');
+  console.log("⬇️  Fetching filelist.csv from GitHub...");
 
   try {
     const response = await fetch(GITHUB_URL);
@@ -57,11 +58,11 @@ async function loadFilelist(): Promise<FilelistEntry[]> {
     const content = await response.text();
 
     // Parse CSV
-    const lines = content.trim().split('\n');
-    const headers = lines[0].split(',');
+    const lines = content.trim().split("\n");
+    const headers = lines[0].split(",");
 
-    return lines.slice(1).map(line => {
-      const values = line.split(',');
+    return lines.slice(1).map((line) => {
+      const values = line.split(",");
       const entry: any = {};
       headers.forEach((header, index) => {
         entry[header] = values[index];
@@ -69,7 +70,7 @@ async function loadFilelist(): Promise<FilelistEntry[]> {
       return entry as FilelistEntry;
     });
   } catch (error) {
-    console.error('❌ Failed to fetch filelist from GitHub:', error);
+    console.error("❌ Failed to fetch filelist from GitHub:", error);
     throw error;
   }
 }
@@ -78,7 +79,7 @@ async function loadFilelist(): Promise<FilelistEntry[]> {
  * Import videos into database
  */
 async function importVideos() {
-  console.log('🚀 Starting video import...\n');
+  console.log("🚀 Starting video import...\n");
 
   try {
     // Load filelist
@@ -86,18 +87,21 @@ async function importVideos() {
     console.log(`📊 Found ${filelist.length} video files\n`);
 
     // Group by interaction (videoId)
-    const interactionMap = new Map<string, {
-      videoId: string;
-      vendorId: number;
-      sessionId: number;
-      interactionId: number;
-      participant1Id: string;
-      participant2Id: string;
-      label: string;
-      split: string;
-      fileId1: string;
-      fileId2: string;
-    }>();
+    const interactionMap = new Map<
+      string,
+      {
+        videoId: string;
+        vendorId: number;
+        sessionId: number;
+        interactionId: number;
+        participant1Id: string;
+        participant2Id: string;
+        label: string;
+        split: string;
+        fileId1: string;
+        fileId2: string;
+      }
+    >();
 
     for (const entry of filelist) {
       const parsed = parseFileId(entry.file_id);
@@ -106,7 +110,8 @@ async function importVideos() {
         continue;
       }
 
-      const { videoId, vendorId, sessionId, interactionId, participantId } = parsed;
+      const { videoId, vendorId, sessionId, interactionId, participantId } =
+        parsed;
 
       if (!interactionMap.has(videoId)) {
         interactionMap.set(videoId, {
@@ -115,11 +120,11 @@ async function importVideos() {
           sessionId,
           interactionId,
           participant1Id: participantId,
-          participant2Id: '',
+          participant2Id: "",
           label: entry.label,
           split: entry.split,
           fileId1: entry.file_id,
-          fileId2: '',
+          fileId2: "",
         });
       } else {
         const interaction = interactionMap.get(videoId)!;
@@ -130,17 +135,19 @@ async function importVideos() {
 
     // Filter to only complete interactions (with both participants)
     const completeInteractions = Array.from(interactionMap.values()).filter(
-      i => i.fileId1 && i.fileId2
+      (i) => i.fileId1 && i.fileId2,
     );
 
-    console.log(`✅ Found ${completeInteractions.length} complete interactions (with both participants)\n`);
+    console.log(
+      `✅ Found ${completeInteractions.length} complete interactions (with both participants)\n`,
+    );
 
     // Import in batches
     const batchSize = 1000;
     let imported = 0;
     let updated = 0;
 
-    console.log('💾 Importing to database...\n');
+    console.log("💾 Importing to database...\n");
 
     for (let i = 0; i < completeInteractions.length; i += batchSize) {
       const batch = completeInteractions.slice(i, i + batchSize);
@@ -167,28 +174,36 @@ async function importVideos() {
               create: data,
             });
 
-            if (await prisma.video.findUnique({ where: { videoId: interaction.videoId } })) {
+            if (
+              await prisma.video.findUnique({
+                where: { videoId: interaction.videoId },
+              })
+            ) {
               updated++;
             } else {
               imported++;
             }
           } catch (error: any) {
-            console.error(`❌ Error importing ${interaction.videoId}:`, error.message);
+            console.error(
+              `❌ Error importing ${interaction.videoId}:`,
+              error.message,
+            );
           }
-        })
+        }),
       );
 
       const progress = Math.min(i + batchSize, completeInteractions.length);
-      console.log(`   Progress: ${progress}/${completeInteractions.length} (${Math.round(progress / completeInteractions.length * 100)}%)`);
+      console.log(
+        `   Progress: ${progress}/${completeInteractions.length} (${Math.round((progress / completeInteractions.length) * 100)}%)`,
+      );
     }
 
-    console.log('\n✅ Import complete!');
+    console.log("\n✅ Import complete!");
     console.log(`   📊 Total interactions: ${completeInteractions.length}`);
     console.log(`   ✨ New records: ${imported}`);
     console.log(`   🔄 Updated records: ${updated}`);
-
   } catch (error) {
-    console.error('❌ Import failed:', error);
+    console.error("❌ Import failed:", error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const S3_BUCKET = 'dl.fbaipublicfiles.com';
-const S3_PREFIX = 'seamless_interaction';
+const S3_BUCKET = "dl.fbaipublicfiles.com";
+const S3_PREFIX = "seamless_interaction";
 const S3_BASE_URL = `https://${S3_BUCKET}/${S3_PREFIX}`;
 
 /**
@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
   const split = searchParams.get("split") || "dev";
 
   if (!fileId) {
-    return NextResponse.json({ error: "Missing fileId parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Missing fileId parameter" },
+      { status: 400 },
+    );
   }
 
   try {
@@ -40,14 +43,16 @@ export async function GET(request: NextRequest) {
     const s3Response = await fetch(videoUrl, {
       headers: s3Headers,
       // Don't follow redirects automatically - handle them explicitly
-      redirect: 'follow'
+      redirect: "follow",
     });
 
     if (!s3Response.ok) {
-      console.error(`Failed to fetch video from S3: ${s3Response.status} ${s3Response.statusText}`);
+      console.error(
+        `Failed to fetch video from S3: ${s3Response.status} ${s3Response.statusText}`,
+      );
       return NextResponse.json(
         { error: `Video not found: ${s3Response.statusText}` },
-        { status: s3Response.status }
+        { status: s3Response.status },
       );
     }
 
@@ -80,7 +85,7 @@ export async function GET(request: NextRequest) {
     console.error("Error streaming video:", error);
     return NextResponse.json(
       { error: "Failed to stream video" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

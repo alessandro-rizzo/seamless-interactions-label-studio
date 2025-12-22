@@ -107,6 +107,7 @@ The home page shows:
 - **Recent Annotations** - Latest 10 annotations with quick access
 
 **Export Options:**
+
 - Click "Export JSON" to download all annotations as JSON
 - Click "Export CSV" to download all annotations as CSV
 
@@ -163,30 +164,31 @@ seamless-interactions-label-studio/
 
 The `Annotation` model stores:
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | String | Unique identifier (CUID) |
-| `videoId` | String | Video identifier (V{vendor}_S{session}_I{interaction}) - unique |
-| `vendorId` | Int | Vendor ID from dataset |
-| `sessionId` | Int | Session ID from dataset |
-| `interactionId` | Int | Interaction ID from dataset |
-| `speaker1Id` | String | Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A") |
-| `speaker2Id` | String | Participant 2 ID |
-| `speaker1Label` | String | Morph label for speaker 1 |
-| `speaker2Label` | String | Morph label for speaker 2 |
-| `speaker1Confidence` | Int | Confidence score for speaker 1 (1-5) |
-| `speaker2Confidence` | Int | Confidence score for speaker 2 (1-5) |
-| `speaker1Comments` | String | Optional comments for speaker 1 |
-| `speaker2Comments` | String | Optional comments for speaker 2 |
-| `labelingTimeMs` | Int | Time spent labeling (milliseconds) |
-| `createdAt` | DateTime | Creation timestamp |
-| `updatedAt` | DateTime | Last update timestamp |
+| Field                | Type     | Description                                                       |
+| -------------------- | -------- | ----------------------------------------------------------------- |
+| `id`                 | String   | Unique identifier (CUID)                                          |
+| `videoId`            | String   | Video identifier (V{vendor}\_S{session}\_I{interaction}) - unique |
+| `vendorId`           | Int      | Vendor ID from dataset                                            |
+| `sessionId`          | Int      | Session ID from dataset                                           |
+| `interactionId`      | Int      | Interaction ID from dataset                                       |
+| `speaker1Id`         | String   | Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A")     |
+| `speaker2Id`         | String   | Participant 2 ID                                                  |
+| `speaker1Label`      | String   | Morph label for speaker 1                                         |
+| `speaker2Label`      | String   | Morph label for speaker 2                                         |
+| `speaker1Confidence` | Int      | Confidence score for speaker 1 (1-5)                              |
+| `speaker2Confidence` | Int      | Confidence score for speaker 2 (1-5)                              |
+| `speaker1Comments`   | String   | Optional comments for speaker 1                                   |
+| `speaker2Comments`   | String   | Optional comments for speaker 2                                   |
+| `labelingTimeMs`     | Int      | Time spent labeling (milliseconds)                                |
+| `createdAt`          | DateTime | Creation timestamp                                                |
+| `updatedAt`          | DateTime | Last update timestamp                                             |
 
 ## Development
 
 ### Running Tests
 
 **Unit Tests (Jest + React Testing Library)**
+
 ```bash
 # Run all unit tests with coverage
 pnpm test
@@ -196,6 +198,7 @@ pnpm test:watch
 ```
 
 **End-to-End Tests (Playwright)**
+
 ```bash
 # Run e2e tests (starts dev server automatically)
 pnpm test:e2e
@@ -205,6 +208,7 @@ pnpm test:e2e:ui
 ```
 
 The e2e test covers the complete labeling workflow:
+
 - Landing on homepage and checking initial stats
 - Navigating to videos list and downloading a video
 - Playing video, selecting morphs, setting confidence, adding comments
@@ -223,11 +227,13 @@ The project includes a GitHub Actions workflow (`.github/workflows/pr.yml`) that
 ### Database Management
 
 View/edit database directly:
+
 ```bash
 pnpm db:studio
 ```
 
 Reset database:
+
 ```bash
 # Drop all tables and re-create
 pnpm db:push --accept-data-loss
@@ -260,36 +266,44 @@ pnpm start
 ### Annotations API
 
 **GET /api/annotations**
+
 - Returns all annotations ordered by creation date
 
 **POST /api/annotations**
+
 - Creates or updates an annotation
 - Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, labelingTimeMs }`
 
 **DELETE /api/annotations?videoId={videoId}**
+
 - Deletes an annotation by videoId
 
 **DELETE /api/annotations?id={id}**
+
 - Deletes an annotation by ID
 
 ### Download API
 
 **POST /api/download**
+
 - Downloads videos from S3
 - Body: `{ fileId1, fileId2, label, split, batchIdx }`
 
 **DELETE /api/download?fileId1={id1}&fileId2={id2}**
+
 - Deletes downloaded videos from disk
 
 ### Export API
 
 **GET /api/export?format={csv|json}**
+
 - Downloads all annotations in specified format
 - Returns file with download headers
 
 ### Video API
 
 **GET /api/video?path={absolutePath}**
+
 - Streams video file with range request support
 - Validates path is within allowed directories
 - Returns 206 Partial Content for seeking
@@ -297,6 +311,7 @@ pnpm start
 ### Interactions API
 
 **GET /api/interactions**
+
 - Returns list of all available interactions from dataset
 - Includes download status for each video
 
@@ -347,11 +362,13 @@ pnpm build
 ## Dataset Format
 
 The app expects videos following this naming pattern:
+
 ```
 V{vendor}_S{session}_I{interaction}_P{participant}.mp4
 ```
 
 Example: `V00_S0644_I00000129_P0799.mp4`
+
 - Vendor: 00 (with leading zeros preserved)
 - Session: 0644
 - Interaction: 00000129

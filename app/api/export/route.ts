@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
             annotation.labelingTimeMs,
             annotation.createdAt.toISOString(),
             annotation.updatedAt.toISOString(),
-          ].join(",")
+          ].join(","),
         ),
       ];
 
@@ -60,9 +60,9 @@ export async function GET(request: NextRequest) {
       return new NextResponse(csv, {
         headers: {
           "Content-Type": "text/csv",
-          "Content-Disposition": `attachment; filename="annotations-${new Date()
-            .toISOString()
-            .split("T")[0]}.csv"`,
+          "Content-Disposition": `attachment; filename="annotations-${
+            new Date().toISOString().split("T")[0]
+          }.csv"`,
         },
       });
     } else {
@@ -72,14 +72,17 @@ export async function GET(request: NextRequest) {
       return new NextResponse(json, {
         headers: {
           "Content-Type": "application/json",
-          "Content-Disposition": `attachment; filename="annotations-${new Date()
-            .toISOString()
-            .split("T")[0]}.json"`,
+          "Content-Disposition": `attachment; filename="annotations-${
+            new Date().toISOString().split("T")[0]
+          }.json"`,
         },
       });
     }
   } catch (error) {
     console.error("Error exporting annotations:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

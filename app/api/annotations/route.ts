@@ -9,7 +9,10 @@ export async function GET() {
     return NextResponse.json(annotations);
   } catch (error) {
     console.error("Error fetching annotations:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -34,7 +37,10 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!videoId || !speaker1Label || !speaker2Label) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 },
+      );
     }
 
     // Upsert annotation (update if exists, create if not)
@@ -70,7 +76,10 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(annotation);
   } catch (error) {
     console.error("Error saving annotation:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }
 
@@ -81,7 +90,10 @@ export async function DELETE(request: NextRequest) {
     const videoId = searchParams.get("videoId");
 
     if (!id && !videoId) {
-      return NextResponse.json({ error: "Missing annotation ID or videoId" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing annotation ID or videoId" },
+        { status: 400 },
+      );
     }
 
     if (videoId) {
@@ -99,6 +111,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting annotation:", error);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 },
+    );
   }
 }

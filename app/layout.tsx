@@ -21,8 +21,13 @@ export default function RootLayout({
         <div className="min-h-screen flex flex-col bg-background text-foreground">
           <header className="border-b bg-card">
             <div className="container mx-auto px-4 py-4">
-              <Link href="/" className="block hover:opacity-80 transition-opacity">
-                <h1 className="text-2xl font-bold">Seamless Interactions Label Studio</h1>
+              <Link
+                href="/"
+                className="block hover:opacity-80 transition-opacity"
+              >
+                <h1 className="text-2xl font-bold">
+                  Seamless Interactions Label Studio
+                </h1>
                 <p className="text-sm text-muted-foreground">
                   Observational coding for speaker morphs
                 </p>

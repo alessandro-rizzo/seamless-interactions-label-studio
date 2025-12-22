@@ -1,4 +1,4 @@
-import { prisma } from './db';
+import { prisma } from "./db";
 
 export interface VideoMetadata {
   vendorId: number;
@@ -32,7 +32,7 @@ export async function getAvailableVideos(): Promise<VideoMetadata[]> {
   try {
     const videos = await prisma.video.findMany({
       orderBy: {
-        videoId: 'asc',
+        videoId: "asc",
       },
     });
 
@@ -43,15 +43,23 @@ export async function getAvailableVideos(): Promise<VideoMetadata[]> {
       participant1Id: video.participant1Id,
       participant2Id: video.participant2Id,
       videoId: video.videoId,
-      participant1VideoPath: getStreamingUrl(video.fileId1, video.label, video.split),
-      participant2VideoPath: getStreamingUrl(video.fileId2, video.label, video.split),
+      participant1VideoPath: getStreamingUrl(
+        video.fileId1,
+        video.label,
+        video.split,
+      ),
+      participant2VideoPath: getStreamingUrl(
+        video.fileId2,
+        video.label,
+        video.split,
+      ),
       fileId1: video.fileId1,
       fileId2: video.fileId2,
       label: video.label,
       split: video.split,
     }));
   } catch (error) {
-    console.error('Error fetching videos from database:', error);
+    console.error("Error fetching videos from database:", error);
     return [];
   }
 }
@@ -59,7 +67,9 @@ export async function getAvailableVideos(): Promise<VideoMetadata[]> {
 /**
  * Get video metadata by video ID
  */
-export async function getVideoById(videoId: string): Promise<VideoMetadata | null> {
+export async function getVideoById(
+  videoId: string,
+): Promise<VideoMetadata | null> {
   try {
     const video = await prisma.video.findUnique({
       where: { videoId },
@@ -76,15 +86,23 @@ export async function getVideoById(videoId: string): Promise<VideoMetadata | nul
       participant1Id: video.participant1Id,
       participant2Id: video.participant2Id,
       videoId: video.videoId,
-      participant1VideoPath: getStreamingUrl(video.fileId1, video.label, video.split),
-      participant2VideoPath: getStreamingUrl(video.fileId2, video.label, video.split),
+      participant1VideoPath: getStreamingUrl(
+        video.fileId1,
+        video.label,
+        video.split,
+      ),
+      participant2VideoPath: getStreamingUrl(
+        video.fileId2,
+        video.label,
+        video.split,
+      ),
       fileId1: video.fileId1,
       fileId2: video.fileId2,
       label: video.label,
       split: video.split,
     };
   } catch (error) {
-    console.error('Error fetching video by ID:', error);
+    console.error("Error fetching video by ID:", error);
     return null;
   }
 }
@@ -100,10 +118,11 @@ export async function getDatasetStats() {
       totalVideos: videos.length,
       totalSpeakers: videos.length * 2,
       uniqueVendors: new Set(videos.map((v) => v.vendorId)).size,
-      uniqueSessions: new Set(videos.map((v) => `${v.vendorId}_${v.sessionId}`)).size,
+      uniqueSessions: new Set(videos.map((v) => `${v.vendorId}_${v.sessionId}`))
+        .size,
     };
   } catch (error) {
-    console.error('Error calculating dataset stats:', error);
+    console.error("Error calculating dataset stats:", error);
     return {
       totalVideos: 0,
       totalSpeakers: 0,

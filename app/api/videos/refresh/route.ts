@@ -4,10 +4,10 @@
  * POST /api/videos/refresh - Force refresh (ignores cache)
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
+import { NextRequest, NextResponse } from "next/server";
+import { prisma } from "@/lib/db";
+import fs from "fs";
+import path from "path";
 
 interface FilelistEntry {
   file_id: string;
@@ -31,9 +31,10 @@ function parseFileId(fileId: string) {
 }
 
 async function loadFilelist(forceRefresh = false): Promise<FilelistEntry[]> {
-  const cacheDir = path.join(process.cwd(), '.cache');
-  const cacheFile = path.join(cacheDir, 'filelist.csv');
-  const GITHUB_URL = 'https://raw.githubusercontent.com/facebookresearch/seamless_interaction/main/assets/filelist.csv';
+  const cacheDir = path.join(process.cwd(), ".cache");
+  const cacheFile = path.join(cacheDir, "filelist.csv");
+  const GITHUB_URL =
+    "https://raw.githubusercontent.com/facebookresearch/seamless_interaction/main/assets/filelist.csv";
 
   // Check cache (unless force refresh)
   if (!forceRefresh && fs.existsSync(cacheFile)) {
@@ -42,7 +43,7 @@ async function loadFilelist(forceRefresh = false): Promise<FilelistEntry[]> {
     const maxAge = 24 * 60 * 60 * 1000; // 24 hours
 
     if (age < maxAge) {
-      const content = fs.readFileSync(cacheFile, 'utf-8');
+      const content = fs.readFileSync(cacheFile, "utf-8");
       return parseCSV(content);
     }
   }
@@ -59,17 +60,17 @@ async function loadFilelist(forceRefresh = false): Promise<FilelistEntry[]> {
   if (!fs.existsSync(cacheDir)) {
     fs.mkdirSync(cacheDir, { recursive: true });
   }
-  fs.writeFileSync(cacheFile, content, 'utf-8');
+  fs.writeFileSync(cacheFile, content, "utf-8");
 
   return parseCSV(content);
 }
 
 function parseCSV(content: string): FilelistEntry[] {
-  const lines = content.trim().split('\n');
-  const headers = lines[0].split(',');
+  const lines = content.trim().split("\n");
+  const headers = lines[0].split(",");
 
-  return lines.slice(1).map(line => {
-    const values = line.split(',');
+  return lines.slice(1).map((line) => {
+    const values = line.split(",");
     const entry: any = {};
     headers.forEach((header, index) => {
       entry[header] = values[index];
@@ -80,7 +81,7 @@ function parseCSV(content: string): FilelistEntry[] {
 
 export async function GET(request: NextRequest) {
   try {
-    const forceRefresh = request.nextUrl.searchParams.get('force') === 'true';
+    const forceRefresh = request.nextUrl.searchParams.get("force") === "true";
 
     const startTime = Date.now();
 
@@ -94,7 +95,8 @@ export async function GET(request: NextRequest) {
       const parsed = parseFileId(entry.file_id);
       if (!parsed) continue;
 
-      const { videoId, vendorId, sessionId, interactionId, participantId } = parsed;
+      const { videoId, vendorId, sessionId, interactionId, participantId } =
+        parsed;
 
       if (!interactionMap.has(videoId)) {
         interactionMap.set(videoId, {
@@ -103,11 +105,11 @@ export async function GET(request: NextRequest) {
           sessionId,
           interactionId,
           participant1Id: participantId,
-          participant2Id: '',
+          participant2Id: "",
           label: entry.label,
           split: entry.split,
           fileId1: entry.file_id,
-          fileId2: '',
+          fileId2: "",
           batchIdx: parseInt(entry.batch_idx),
           archiveIdx: parseInt(entry.archive_idx),
         });
@@ -120,17 +122,17 @@ export async function GET(request: NextRequest) {
 
     // Filter complete interactions
     const completeInteractions = Array.from(interactionMap.values()).filter(
-      (i: any) => i.fileId1 && i.fileId2
+      (i: any) => i.fileId1 && i.fileId2,
     );
 
     // Check downloaded files
-    const downloadDir = path.join(process.cwd(), 'downloads');
+    const downloadDir = path.join(process.cwd(), "downloads");
     const downloadedFiles = new Set<string>();
 
     if (fs.existsSync(downloadDir)) {
       const files = fs.readdirSync(downloadDir);
       for (const file of files) {
-        if (file.endsWith('.mp4')) {
+        if (file.endsWith(".mp4")) {
           downloadedFiles.add(file);
         }
       }
@@ -148,7 +150,8 @@ export async function GET(request: NextRequest) {
         batch.map(async (interaction: any) => {
           const p1File = `${interaction.fileId1}.mp4`;
           const p2File = `${interaction.fileId2}.mp4`;
-          const isDownloaded = downloadedFiles.has(p1File) && downloadedFiles.has(p2File);
+          const isDownloaded =
+            downloadedFiles.has(p1File) && downloadedFiles.has(p2File);
 
           const data = {
             videoId: interaction.videoId,
@@ -164,8 +167,12 @@ export async function GET(request: NextRequest) {
             batchIdx: interaction.batchIdx,
             archiveIdx: interaction.archiveIdx,
             isDownloaded,
-            participant1Path: isDownloaded ? path.join(downloadDir, p1File) : null,
-            participant2Path: isDownloaded ? path.join(downloadDir, p2File) : null,
+            participant1Path: isDownloaded
+              ? path.join(downloadDir, p1File)
+              : null,
+            participant2Path: isDownloaded
+              ? path.join(downloadDir, p2File)
+              : null,
           };
 
           const existing = await prisma.video.findUnique({
@@ -183,7 +190,7 @@ export async function GET(request: NextRequest) {
           } else {
             imported++;
           }
-        })
+        }),
       );
     }
 
@@ -204,10 +211,10 @@ export async function GET(request: NextRequest) {
       duration: `${(duration / 1000).toFixed(2)}s`,
     });
   } catch (error: any) {
-    console.error('Error refreshing videos:', error);
+    console.error("Error refreshing videos:", error);
     return NextResponse.json(
-      { error: 'Failed to refresh video data', message: error.message },
-      { status: 500 }
+      { error: "Failed to refresh video data", message: error.message },
+      { status: 500 },
     );
   }
 }
@@ -215,11 +222,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   // Force refresh by setting force=true
   const url = new URL(request.url);
-  url.searchParams.set('force', 'true');
+  url.searchParams.set("force", "true");
 
   return GET(
     new NextRequest(url, {
-      method: 'GET',
-    })
+      method: "GET",
+    }),
   );
 }
