@@ -17,7 +17,7 @@
     "db:generate": "prisma generate",
     "db:import": "tsx scripts/import-videos.ts"
   },
-  "packageManager": "pnpm@8.15.6",
+  "packageManager": "pnpm@9.15.4",
   "dependencies": {
     "@prisma/client": "^6.2.1",
     "@radix-ui/react-dialog": "^1.1.2",
