@@ -18,8 +18,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <div className="min-h-screen flex flex-col bg-background text-foreground">
-          <header className="border-b bg-card">
+        <div className="h-screen flex flex-col bg-background text-foreground">
+          <header className="border-b bg-card flex-shrink-0">
             <div className="container mx-auto px-4 py-4">
               <Link
                 href="/"
@@ -28,13 +28,10 @@ export default function RootLayout({
                 <h1 className="text-2xl font-bold">
                   Seamless Interactions Label Studio
                 </h1>
-                <p className="text-sm text-muted-foreground">
-                  Observational coding for speaker morphs
-                </p>
               </Link>
             </div>
           </header>
-          <main className="flex-1">{children}</main>
+          <main className="flex-1 overflow-hidden">{children}</main>
         </div>
       </body>
     </html>

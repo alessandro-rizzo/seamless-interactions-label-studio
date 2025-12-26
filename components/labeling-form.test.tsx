@@ -175,9 +175,9 @@ describe("LabelingForm", () => {
       );
     });
 
-    // Should navigate back to videos list
+    // Should navigate back to home page
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith("/videos");
+      expect(mockPush).toHaveBeenCalledWith("/");
     });
   });
 
@@ -240,7 +240,7 @@ describe("LabelingForm", () => {
 
     await user.click(screen.getByText("Back to List"));
 
-    expect(mockPush).toHaveBeenCalledWith("/videos");
+    expect(mockPush).toHaveBeenCalledWith("/");
   });
 
   it("should delete annotation when Clear Annotation is clicked", async () => {
@@ -256,6 +256,11 @@ describe("LabelingForm", () => {
         `/api/annotations?videoId=${encodeURIComponent(mockVideo.videoId)}`,
         { method: "DELETE" },
       );
+    });
+
+    // Should navigate back to home page
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith("/");
     });
   });
 

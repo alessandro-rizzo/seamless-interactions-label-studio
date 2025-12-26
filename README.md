@@ -4,30 +4,32 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 
 ## Features
 
-- 📋 **Browse All Videos** - See all 64,000+ videos available in the dataset (fetched from GitHub)
-- 📥 **On-Demand Downloads** - Download specific videos directly from S3 (no Python required!)
-- 🗑️ **Disk Management** - Delete videos from disk after annotation to save space
+- 📊 **Unified Dashboard** - Stats and video list on one page with sticky header for efficient workflow
+- 📋 **Browse All Videos** - See all 64,000+ videos available in the dataset
 - 📹 **Synchronized Dual Video Player** - Watch both participants side-by-side with frame-perfect synchronization
-- ⏱️ **Automatic Time Tracking** - Labeling time calculated from first video play to last morph selection
 - ✅ **Progress Tracking** - Visual indicators showing completed vs. pending annotations
 - 🏷️ **Binary Labeling** - Label each speaker as Morph A or Morph B
 - 🎯 **Per-Speaker Confidence** - Individual confidence scoring for each speaker (1-5 scale)
 - 💬 **Per-Speaker Comments** - Add individual observations and notes for each speaker
 - 🧹 **Clear Annotations** - Delete annotation records with confirmation
-- 📊 **Statistics Dashboard** - View morph distribution, completion rates, and time metrics
-- 🔍 **Advanced Filtering** - Filter by download status, annotation status, and interaction type (improvised/naturalistic)
+- 📈 **Live Statistics** - View morph distribution and completion metrics at the top of the page
+- 🔍 **Advanced Filtering** - Filter by annotation status, interaction type, and search by video ID
+- 🔄 **Flexible Sorting** - Sort by video ID or labeling date (newest first)
+- 📄 **Pagination** - Navigate through videos with page controls
 - 💾 **Persistent Storage** - PostgreSQL database for reliable persistence
 - 🎨 **Dark Mode UI** - Modern dark theme optimized for extended use
-- ⚡ **Fast & Local** - Runs entirely on your machine
+- ⚡ **Fast & Local** - Runs entirely on your machine with local Docker database
 
 ## Prerequisites
 
 - **Node.js** 18+ ([install](https://nodejs.org/) or use [nvm](https://github.com/nvm-sh/nvm))
 - **pnpm** package manager: `npm install -g pnpm`
 - **PostgreSQL** database:
-  - **Option 1:** [Docker](https://www.docker.com/) (easiest - we provide docker-compose.yml)
-  - **Option 2:** Hosted PostgreSQL ([Neon](https://neon.tech), [Supabase](https://supabase.com), etc.)
-- **Internet connection** (to fetch video list and download videos)
+  - **Recommended:** [Docker](https://www.docker.com/) with provided docker-compose.yml (for development and testing)
+  - **Alternative:** Hosted PostgreSQL ([Neon](https://neon.tech), [Supabase](https://supabase.com), etc.) for production
+- **Internet connection** (to stream videos from S3)
+
+**Note:** For development and e2e tests, use the local Docker PostgreSQL database. The e2e tests require a clean database state and will fail if pointed to a shared production database.
 
 No Python required. Everything is fetched on-demand from S3.
 
@@ -50,8 +52,11 @@ pnpm install
 ### 3. Setup Environment
 
 ```bash
-# Copy environment variables
-cp .env.local .env
+# Copy environment variables template
+cp .env.example .env
+
+# The .env file should point to local PostgreSQL:
+# DATABASE_URL="postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public"
 ```
 
 ### 4. Setup Database
@@ -78,32 +83,30 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Labeling Workflow
 
-1. **Browse Videos** - Click "Start Labeling" from the home page to see all available interactions
-2. **Filter Videos** - Use filters to find specific videos:
-   - Download status (all/downloaded/not downloaded)
-   - Annotation status (all/annotated/not annotated)
-   - Interaction type (all/improvised/naturalistic)
-3. **Download Video** - Click "Download" to fetch the video on-demand from S3 (typically 30-50 MB)
+1. **View Dashboard & Videos** - The home page displays:
+   - Stats cards at the top (Annotated Videos, Labeled Speakers, Morph Distribution)
+   - All filters and search in one horizontal line
+   - Scrollable video list below with pagination
+2. **Filter & Sort Videos** - Use the filter controls (all on one line) to find specific videos:
+   - **Search** - Type to filter by video ID
+   - **Annotation Status** - Filter by all/annotated/not annotated
+   - **Interaction Type** - Filter by all/improvised/naturalistic
+   - **Sort** - Sort by video ID or labeling date (newest first)
+3. **Select Video** - Click "Label →" to start annotating or "Edit →" to modify existing annotations
 4. **Watch & Analyze** - Both participant videos play in perfect sync with shared playback controls
-5. **Start Timer** - Begin timing when you start analyzing the interaction
-6. **Label Speakers** - Select Morph A or Morph B for each participant
-7. **Set Confidence** - Use individual sliders for each speaker's confidence (1=low, 5=high)
-8. **Add Comments** - Include per-speaker observations and notes (optional)
-9. **Save** - Timer and video automatically stop when you save
-10. **Clear Annotation** - Use "Clear Annotation" button to delete the record if needed
-11. **Clean Up** - Delete the video from disk using the trash icon to save space
+5. **Label Speakers** - Select Morph A or Morph B for each participant
+6. **Set Confidence** - Use individual sliders for each speaker's confidence (1=low, 5=high)
+7. **Add Comments** - Include per-speaker observations and notes (optional)
+8. **Save** - Click "Save Annotation" to save and return to home page (video stops automatically)
+9. **Clear Annotation** - Use "Clear Annotation" button to delete the record (requires confirmation)
 
-### Dashboard
+### Dashboard Stats
 
-The home page shows:
+The home page displays at the top:
 
-- **Total Videos** - Downloaded videos as percentage of total dataset
-- **Annotated Videos** - Completed annotations as percentage of downloaded
-- **Labeled Speakers** - Total number of speakers annotated
-- **Average Confidence** - Overall and per-speaker confidence metrics
-- **Labeling Time** - Total and average time spent per video
-- **Morph Distribution** - Visual breakdown of Morph A vs B proportions
-- **Recent Annotations** - Latest 10 annotations with quick access
+- **Annotated Videos** - Total number of completed annotations
+- **Labeled Speakers** - Total number of speakers annotated (2 per video)
+- **Morph Distribution** - Visual breakdown of Morph A vs B proportions across all annotations
 
 ### Keyboard Navigation
 
@@ -121,12 +124,12 @@ seamless-interactions-label-studio/
 │   ├── api/                      # Backend API routes
 │   │   ├── annotations/          # Annotation CRUD operations
 │   │   ├── download/             # Video download endpoint
-│   │   ├── interactions/        # Remote dataset listing
-│   │   └── video/               # Video streaming with range support
-│   ├── videos/                  # Video list and labeling pages
+│   │   ├── video/               # Video streaming with range support
+│   │   └── videos/              # Video list API with filtering/sorting
+│   ├── videos/                  # Video labeling pages
 │   │   └── [videoId]/           # Dynamic annotation page per video
-│   ├── layout.tsx               # Root layout with header
-│   ├── page.tsx                 # Dashboard with statistics
+│   ├── layout.tsx               # Root layout with fixed header
+│   ├── page.tsx                 # Home page with stats and video list
 │   └── globals.css              # Tailwind styles
 ├── components/                   # React components
 │   ├── labeling-form.tsx        # Annotation form with timer and controls
@@ -202,11 +205,12 @@ pnpm test:e2e:ui
 
 The e2e test covers the complete labeling workflow:
 
-- Landing on homepage and checking initial stats
-- Navigating to videos list and downloading a video
+- Landing on homepage with stats and video list
+- Filtering to find a not-annotated video
+- Navigating to video labeling page
 - Playing video, selecting morphs, setting confidence, adding comments
 - Saving annotation and verifying stats update
-- Cleanup (deleting annotation and downloaded video)
+- Cleanup (deleting the annotation)
 
 ### Continuous Integration
 
@@ -263,7 +267,7 @@ pnpm start
 
 **POST /api/annotations**
 
-- Creates or updates an annotation
+- Creates or updates an annotation (upsert by videoId)
 - Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, labelingTimeMs }`
 
 **DELETE /api/annotations?videoId={videoId}**
@@ -273,6 +277,26 @@ pnpm start
 **DELETE /api/annotations?id={id}**
 
 - Deletes an annotation by ID
+
+### Videos API
+
+**GET /api/videos**
+
+- Returns paginated video list with filtering and sorting
+- Query params:
+  - `page` - Page number (default: 1)
+  - `limit` - Items per page (default: 20)
+  - `search` - Filter by video ID
+  - `annotatedFilter` - Filter by annotation status (all/annotated/not-annotated)
+  - `labelFilter` - Filter by interaction type (all/improvised/naturalistic)
+  - `sortBy` - Sort order (videoId/annotatedAt)
+- Returns:
+  - `interactions` - Array of video metadata
+  - `annotatedVideoIds` - Array of annotated video IDs
+  - `total` - Total matching videos
+  - `page`, `limit`, `totalPages` - Pagination info
+  - `filterCounts` - Counts for each filter option
+  - `stats` - Morph distribution statistics
 
 ### Download API
 
@@ -287,18 +311,12 @@ pnpm start
 
 ### Video API
 
-**GET /api/video?path={absolutePath}**
+**GET /api/video?fileId={fileId}&label={label}&split={split}**
 
-- Streams video file with range request support
-- Validates path is within allowed directories
+- Streams video from S3 with range request support
+- Automatically downloads and caches videos locally
 - Returns 206 Partial Content for seeking
-
-### Interactions API
-
-**GET /api/interactions**
-
-- Returns list of all available interactions from dataset
-- Includes download status for each video
+- Validates parameters and handles streaming errors
 
 ## Troubleshooting
 

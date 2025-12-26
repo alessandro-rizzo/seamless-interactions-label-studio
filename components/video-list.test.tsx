@@ -20,6 +20,7 @@ const mockApiResponse = {
       fileId2: "V00_S0001_I00000001_P0002",
       participant1VideoPath: "/api/video?fileId=V00_S0001_I00000001_P0001",
       participant2VideoPath: "/api/video?fileId=V00_S0001_I00000001_P0002",
+      annotatedAt: new Date("2024-01-01"),
     },
     {
       videoId: "V00_S0001_I00000002",
@@ -34,6 +35,7 @@ const mockApiResponse = {
       fileId2: "V00_S0001_I00000002_P0004",
       participant1VideoPath: "/api/video?fileId=V00_S0001_I00000002_P0003",
       participant2VideoPath: "/api/video?fileId=V00_S0001_I00000002_P0004",
+      annotatedAt: null,
     },
   ],
   annotatedVideoIds: ["V00_S0001_I00000001"],
@@ -47,6 +49,12 @@ const mockApiResponse = {
     notAnnotated: 50,
     improvised: 60,
     naturalistic: 40,
+  },
+  stats: {
+    morphACount: 30,
+    morphBCount: 70,
+    morphAPercentage: 30,
+    morphBPercentage: 70,
   },
 };
 
@@ -145,7 +153,9 @@ describe("VideoList", () => {
       expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
     });
 
-    const statusSelect = screen.getByDisplayValue(/All Status/);
+    const statusSelect = screen.getByRole("combobox", {
+      name: "Annotation Status Filter",
+    });
     await user.selectOptions(statusSelect, "annotated");
 
     await waitFor(() => {
@@ -163,7 +173,9 @@ describe("VideoList", () => {
       expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
     });
 
-    const labelSelect = screen.getByDisplayValue(/All Types/);
+    const labelSelect = screen.getByRole("combobox", {
+      name: "Label Type Filter",
+    });
     await user.selectOptions(labelSelect, "improvised");
 
     await waitFor(() => {
@@ -249,18 +261,19 @@ describe("VideoList", () => {
     expect(screen.getByText("Loading videos...")).toBeInTheDocument();
 
     const searchInput = screen.getByPlaceholderText("Search by video ID...");
-    const statusSelect = screen.getByDisplayValue(/All Status/);
-    const labelSelect = screen.getByDisplayValue(/All Types/);
+    const selects = screen.getAllByRole("combobox");
+    const statusSelect = selects[0];
+    const labelSelect = selects[1];
+    const sortSelect = selects[2];
 
     expect(searchInput).toBeDisabled();
     expect(statusSelect).toBeDisabled();
     expect(labelSelect).toBeDisabled();
+    expect(sortSelect).toBeDisabled();
   });
 
   it("should display error message on fetch failure", async () => {
-    (global.fetch as jest.Mock).mockRejectedValue(
-      new Error("Failed to fetch"),
-    );
+    (global.fetch as jest.Mock).mockRejectedValue(new Error("Failed to fetch"));
 
     render(<VideoList />);
 
@@ -319,7 +332,9 @@ describe("VideoList", () => {
     });
 
     // Change filter - should reset to page 1
-    const labelSelect = screen.getByDisplayValue(/All Types/);
+    const labelSelect = screen.getByRole("combobox", {
+      name: "Label Type Filter",
+    });
     await user.selectOptions(labelSelect, "improvised");
 
     await waitFor(() => {
@@ -392,6 +407,128 @@ describe("VideoList", () => {
       expect(
         screen.getByText(/Error: Failed to fetch videos/),
       ).toBeInTheDocument();
+    });
+  });
+
+  it("should show stats when showStats prop is true", async () => {
+    render(<VideoList showStats={true} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Annotated Videos")).toBeInTheDocument();
+      expect(screen.getByText("Labeled Speakers")).toBeInTheDocument();
+      expect(screen.getByText("Morph Distribution")).toBeInTheDocument();
+    });
+
+    await waitFor(() => {
+      // Stats should show the values from mockApiResponse
+      const annotatedVideosCard = screen
+        .getByText("Annotated Videos")
+        .closest("div");
+      const labeledSpeakersCard = screen
+        .getByText("Labeled Speakers")
+        .closest("div");
+
+      expect(annotatedVideosCard).toHaveTextContent("50");
+      expect(labeledSpeakersCard).toHaveTextContent("100");
+    });
+  });
+
+  it("should hide stats when showStats prop is false", async () => {
+    render(<VideoList showStats={false} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText("Annotated Videos")).not.toBeInTheDocument();
+    expect(screen.queryByText("Labeled Speakers")).not.toBeInTheDocument();
+    expect(screen.queryByText("Morph Distribution")).not.toBeInTheDocument();
+  });
+
+  it("should display morph distribution in stats", async () => {
+    render(<VideoList showStats={true} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Morph Distribution")).toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/Morph A/)).toBeInTheDocument();
+    expect(screen.getByText(/Morph B/)).toBeInTheDocument();
+    expect(screen.getByText(/30 \/ 100 \(30.0%\)/)).toBeInTheDocument();
+    expect(screen.getByText(/70 \/ 100 \(70.0%\)/)).toBeInTheDocument();
+  });
+
+  it("should have sort dropdown with correct options", async () => {
+    render(<VideoList />);
+
+    await waitFor(() => {
+      expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
+    });
+
+    const sortSelect = screen.getByRole("combobox", { name: "Sort Order" });
+    expect(sortSelect).toBeInTheDocument();
+    expect(sortSelect).toHaveValue("videoId");
+    expect(screen.getByText("Sort by Labeling Date")).toBeInTheDocument();
+  });
+
+  it("should filter videos by sort option", async () => {
+    const user = userEvent.setup();
+    render(<VideoList />);
+
+    await waitFor(() => {
+      expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
+    });
+
+    const sortSelect = screen.getByRole("combobox", { name: "Sort Order" });
+    await user.selectOptions(sortSelect, "annotatedAt");
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("sortBy=annotatedAt"),
+      );
+    });
+  });
+
+  it("should reset page to 1 when changing sort", async () => {
+    const user = userEvent.setup();
+    const multiPageResponse = {
+      ...mockApiResponse,
+      total: 100,
+      totalPages: 5,
+      page: 2,
+    };
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => multiPageResponse,
+    });
+
+    render(<VideoList />);
+
+    await waitFor(() => {
+      expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
+    });
+
+    // Navigate to page 2
+    const nextButton = screen.getByText(/Next/);
+    await user.click(nextButton);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("page=2"),
+      );
+    });
+
+    // Change sort - should reset to page 1
+    const sortSelect = screen.getByRole("combobox", { name: "Sort Order" });
+    await user.selectOptions(sortSelect, "annotatedAt");
+
+    await waitFor(() => {
+      const lastCall = (global.fetch as jest.Mock).mock.calls[
+        (global.fetch as jest.Mock).mock.calls.length - 1
+      ][0];
+      expect(lastCall).toContain("page=1");
+      expect(lastCall).toContain("sortBy=annotatedAt");
     });
   });
 });

@@ -2,32 +2,28 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Labeling Workflow", () => {
   test("complete labeling flow and cleanup", async ({ page }) => {
-    // Step 1: Land on homepage and capture initial stats
+    // Step 1: Land on homepage (now has stats and video list together)
     await page.goto("/");
-    const startLabelingLink = page.getByRole("link", {
-      name: /Start Labeling/,
-    });
-    await expect(startLabelingLink).toBeVisible();
+
+    // Wait for page to load
+    await expect(page.getByPlaceholder("Search by video ID...")).toBeVisible();
 
     // Get initial annotated videos count
     const getAnnotatedCount = async () => {
-      const text = await page
-        .getByText("Annotated Videos")
-        .locator("..")
-        .locator("p.text-3xl")
-        .textContent();
+      // Find the card containing "Annotated Videos" text
+      const card = page.locator('div.p-6:has(h3:text-is("Annotated Videos"))');
+      const text = await card.locator("p.text-3xl").textContent();
       return parseInt(text || "0", 10);
     };
     const initialAnnotatedCount = await getAnnotatedCount();
 
-    // Step 2: Go to videos list
-    await startLabelingLink.click();
-    await expect(page).toHaveURL("/videos");
-    await expect(page.getByPlaceholder("Search by video ID...")).toBeVisible();
+    // Step 2: Video list is already visible on home page
 
     // Step 3: Find a video that's not annotated
-    // First, filter to show only not-annotated videos
-    const annotatedFilter = page.locator("select").first();
+    // Filter to show only not-annotated videos
+    const annotatedFilter = page.getByRole("combobox", {
+      name: "Annotation Status Filter",
+    });
     await annotatedFilter.selectOption("not-annotated");
 
     // Wait for the list to update
@@ -86,22 +82,23 @@ test.describe("Labeling Workflow", () => {
     // Step 9: Submit annotation
     await page.getByRole("button", { name: "Save Annotation" }).click();
 
-    // Should navigate back to videos list
-    await expect(page).toHaveURL("/videos", { timeout: 10000 });
+    // Should navigate back to home page
+    await expect(page).toHaveURL("/", { timeout: 10000 });
 
-    // Step 10: Go back to homepage
-    await page.goto("/");
-
-    // Step 11: Verify the annotated count increased
+    // Step 10: Verify the annotated count increased (already on home page)
+    // Wait a moment for stats to update
+    await page.waitForTimeout(500);
     const updatedAnnotatedCount = await getAnnotatedCount();
     expect(updatedAnnotatedCount).toBe(initialAnnotatedCount + 1);
 
-    // Verify the annotation appears in recent annotations
-    await expect(
-      page.locator(`a[href="/videos/${videoId}"]`).first(),
-    ).toBeVisible();
+    // Verify the video shows as annotated in the list
+    const annotatedVideoCard = page
+      .locator(`text=${videoId}`)
+      .first()
+      .locator("..");
+    await expect(annotatedVideoCard.getByText("Annotated")).toBeVisible();
 
-    // Step 12: Cleanup - delete the annotation
+    // Step 11: Cleanup - delete the annotation
     await page.goto(`/videos/${videoId}`);
 
     const clearButton = page.getByRole("button", { name: /Clear Annotation/ });
@@ -111,11 +108,11 @@ test.describe("Labeling Workflow", () => {
     page.once("dialog", (dialog) => dialog.accept());
     await clearButton.click();
 
-    // Wait for the page to refresh
-    await page.waitForTimeout(1000);
+    // Wait for the page to refresh and navigate back to home
+    await expect(page).toHaveURL("/", { timeout: 5000 });
 
-    // Final verification: go to homepage and check annotation count is back to initial
-    await page.goto("/");
+    // Final verification: check annotation count is back to initial
+    await page.waitForTimeout(500);
     const finalAnnotatedCount = await getAnnotatedCount();
     expect(finalAnnotatedCount).toBe(initialAnnotatedCount);
   });

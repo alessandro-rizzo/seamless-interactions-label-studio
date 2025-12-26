@@ -21,8 +21,10 @@ export default async function VideoLabelingPage({ params }: PageProps) {
   });
 
   return (
-    <div className="container mx-auto px-4 py-4">
-      <LabelingForm video={video} existingAnnotation={existingAnnotation} />
+    <div className="h-full overflow-y-auto">
+      <div className="container mx-auto px-4 py-4">
+        <LabelingForm video={video} existingAnnotation={existingAnnotation} />
+      </div>
     </div>
   );
 }

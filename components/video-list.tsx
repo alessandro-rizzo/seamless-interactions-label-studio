@@ -35,15 +35,26 @@ interface ApiResponse {
   limit: number;
   totalPages: number;
   filterCounts: FilterCounts;
+  stats: {
+    morphACount: number;
+    morphBCount: number;
+    morphAPercentage: number;
+    morphBPercentage: number;
+  };
 }
 
-export function VideoList() {
+interface VideoListProps {
+  showStats?: boolean;
+}
+
+export function VideoList({ showStats = false }: VideoListProps) {
   const [annotatedFilter, setAnnotatedFilter] = useState<
     "all" | "annotated" | "not-annotated"
   >("all");
   const [labelFilter, setLabelFilter] = useState<
     "all" | "improvised" | "naturalistic"
   >("all");
+  const [sortBy, setSortBy] = useState<"videoId" | "annotatedAt">("videoId");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [data, setData] = useState<ApiResponse | null>(null);
@@ -65,6 +76,7 @@ export function VideoList() {
           search: debouncedSearch,
           annotatedFilter,
           labelFilter,
+          sortBy,
         });
 
         const response = await fetch(`/api/videos?${params}`);
@@ -82,7 +94,7 @@ export function VideoList() {
     };
 
     fetchData();
-  }, [currentPage, debouncedSearch, annotatedFilter, labelFilter]);
+  }, [currentPage, debouncedSearch, annotatedFilter, labelFilter, sortBy]);
 
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
@@ -113,205 +125,302 @@ export function VideoList() {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, total);
 
+  // Calculate stats for display if showStats is true
+  const annotatedVideos = filterCounts.annotated;
+  const totalSpeakers = annotatedVideos * 2;
+  const stats = data?.stats || {
+    morphACount: 0,
+    morphBCount: 0,
+    morphAPercentage: 0,
+    morphBPercentage: 0,
+  };
+
   return (
-    <div className="space-y-4">
-      {/* Filters */}
-      <div className="space-y-4">
-        <input
-          type="text"
-          placeholder="Search by video ID..."
-          value={search}
-          onChange={(e) => handleSearchChange(e.target.value)}
-          className="w-full px-4 py-2 border rounded-lg bg-background"
-          disabled={loading}
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <select
-            value={annotatedFilter}
-            onChange={(e) => {
-              setAnnotatedFilter(e.target.value as any);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border rounded-lg bg-background"
-            disabled={loading}
-          >
-            <option value="all">All Status ({filterCounts.total})</option>
-            <option value="annotated">
-              Annotated ({filterCounts.annotated})
-            </option>
-            <option value="not-annotated">
-              Not Annotated ({filterCounts.notAnnotated})
-            </option>
-          </select>
-
-          <select
-            value={labelFilter}
-            onChange={(e) => {
-              setLabelFilter(e.target.value as any);
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 border rounded-lg bg-background"
-            disabled={loading}
-          >
-            <option value="all">All Types ({filterCounts.total})</option>
-            <option value="improvised">
-              Improvised ({filterCounts.improvised})
-            </option>
-            <option value="naturalistic">
-              Naturalistic ({filterCounts.naturalistic})
-            </option>
-          </select>
-        </div>
-      </div>
-
-      {/* Results count and pagination info */}
-      <div className="flex items-center justify-between text-sm text-muted-foreground">
-        <div>
-          {loading ? (
-            "Loading..."
-          ) : (
-            <>
-              Showing {startIndex + 1}-{endIndex} of {total} videos
-            </>
-          )}
-        </div>
-        {totalPages > 1 && (
-          <div>
-            Page {currentPage} of {totalPages}
-          </div>
-        )}
-      </div>
-
-      {/* Video Grid */}
-      {loading ? (
-        <div className="p-8 border rounded-lg bg-card text-center">
-          <p className="text-muted-foreground">Loading videos...</p>
-        </div>
-      ) : interactions.length === 0 ? (
-        <div className="p-8 border rounded-lg bg-card text-center">
-          <p className="text-muted-foreground">
-            No videos found matching your filters
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-4">
-          {interactions.map((interaction) => {
-            const isAnnotated = annotatedVideoIds.has(interaction.videoId);
-
-            return (
-              <div
-                key={interaction.videoId}
-                className="p-6 border rounded-lg bg-card flex items-center justify-between"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-3">
-                    <h2 className="text-lg font-semibold">
-                      {interaction.videoId}
-                    </h2>
-                    {isAnnotated && (
-                      <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
-                        Annotated
+    <div className="h-full flex flex-col">
+      {/* Stats Section */}
+      {showStats && (
+        <div className="flex-shrink-0 container mx-auto px-4 pt-8 pb-4">
+          <div className="grid gap-4 grid-cols-1 lg:grid-cols-[auto_auto_1fr]">
+            <div className="p-6 border rounded-lg bg-card">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Annotated Videos
+              </h3>
+              <p className="text-3xl font-bold mt-2">{annotatedVideos}</p>
+            </div>
+            <div className="p-6 border rounded-lg bg-card">
+              <h3 className="text-sm font-medium text-muted-foreground">
+                Labeled Speakers
+              </h3>
+              <p className="text-3xl font-bold mt-2">{totalSpeakers}</p>
+            </div>
+            <div className="p-6 border rounded-lg bg-card">
+              <h3 className="text-sm font-medium text-muted-foreground mb-4">
+                Morph Distribution
+              </h3>
+              {totalSpeakers > 0 ? (
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium">Morph A</span>
+                      <span className="font-semibold">
+                        {stats.morphACount} / {totalSpeakers} (
+                        {stats.morphAPercentage.toFixed(1)}%)
                       </span>
-                    )}
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-3">
+                      <div
+                        className="bg-blue-500 h-3 rounded-full transition-all"
+                        style={{ width: `${stats.morphAPercentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    Vendor {interaction.vendorId} • Session{" "}
-                    {interaction.sessionId} • Interaction{" "}
-                    {interaction.interactionId}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {interaction.label} • {interaction.split}
+                  <div>
+                    <div className="flex justify-between mb-1">
+                      <span className="font-medium">Morph B</span>
+                      <span className="font-semibold">
+                        {stats.morphBCount} / {totalSpeakers} (
+                        {stats.morphBPercentage.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <div className="w-full bg-secondary rounded-full h-3">
+                      <div
+                        className="bg-green-500 h-3 rounded-full transition-all"
+                        style={{ width: `${stats.morphBPercentage}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
-
-                <Link
-                  href={`/videos/${interaction.videoId}`}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                >
-                  {isAnnotated ? "Edit" : "Label"} →
-                </Link>
-              </div>
-            );
-          })}
+              ) : (
+                <p className="text-muted-foreground text-sm">
+                  No annotations yet
+                </p>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 pt-4">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-            disabled={currentPage === 1 || loading}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <ChevronLeft size={16} />
-            Previous
-          </button>
+      {/* Filters */}
+      <div className="flex-shrink-0 container mx-auto px-4 py-4 border-b bg-background">
+        <div className="space-y-4">
+          <div className="flex gap-4">
+            <input
+              type="text"
+              placeholder="Search by video ID..."
+              value={search}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              className="flex-1 px-4 py-2 border rounded-lg bg-background"
+              disabled={loading}
+            />
+            <select
+              value={annotatedFilter}
+              onChange={(e) => {
+                setAnnotatedFilter(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg bg-background"
+              aria-label="Annotation Status Filter"
+              disabled={loading}
+            >
+              <option value="all">All Status ({filterCounts.total})</option>
+              <option value="annotated">
+                Annotated ({filterCounts.annotated})
+              </option>
+              <option value="not-annotated">
+                Not Annotated ({filterCounts.notAnnotated})
+              </option>
+            </select>
 
-          <div className="flex items-center gap-2">
-            {/* Show first page */}
-            {currentPage > 3 && (
-              <>
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={loading}
-                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
-                >
-                  1
-                </button>
-                {currentPage > 4 && <span className="px-2">...</span>}
-              </>
-            )}
+            <select
+              value={labelFilter}
+              onChange={(e) => {
+                setLabelFilter(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg bg-background"
+              aria-label="Label Type Filter"
+              disabled={loading}
+            >
+              <option value="all">All Types ({filterCounts.total})</option>
+              <option value="improvised">
+                Improvised ({filterCounts.improvised})
+              </option>
+              <option value="naturalistic">
+                Naturalistic ({filterCounts.naturalistic})
+              </option>
+            </select>
 
-            {/* Show pages around current */}
-            {Array.from({ length: totalPages }, (_, i) => i + 1)
-              .filter(
-                (page) => page >= currentPage - 2 && page <= currentPage + 2,
-              )
-              .map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  disabled={loading}
-                  className={`px-3 py-2 border rounded-lg transition-colors disabled:opacity-50 ${
-                    page === currentPage
-                      ? "bg-primary text-primary-foreground"
-                      : "hover:bg-accent"
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-
-            {/* Show last page */}
-            {currentPage < totalPages - 2 && (
-              <>
-                {currentPage < totalPages - 3 && (
-                  <span className="px-2">...</span>
-                )}
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={loading}
-                  className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
-                >
-                  {totalPages}
-                </button>
-              </>
-            )}
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value as any);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 border rounded-lg bg-background"
+              aria-label="Sort Order"
+              disabled={loading}
+            >
+              <option value="videoId">Sort by Video ID</option>
+              <option value="annotatedAt">Sort by Labeling Date</option>
+            </select>
           </div>
 
-          <button
-            onClick={() =>
-              setCurrentPage((prev) => Math.min(totalPages, prev + 1))
-            }
-            disabled={currentPage === totalPages || loading}
-            className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Next
-            <ChevronRight size={16} />
-          </button>
+          {/* Results count and pagination info */}
+          <div className="flex items-center justify-between text-sm text-muted-foreground">
+            <div>
+              {loading ? (
+                "Loading..."
+              ) : (
+                <>
+                  Showing {startIndex + 1}-{endIndex} of {total} videos
+                </>
+              )}
+            </div>
+            {totalPages > 1 && (
+              <div>
+                Page {currentPage} of {totalPages}
+              </div>
+            )}
+          </div>
         </div>
-      )}
+      </div>
+
+      {/* Scrollable Video Grid */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="container mx-auto px-4 py-4">
+          {/* Video Grid */}
+          {loading ? (
+            <div className="p-8 border rounded-lg bg-card text-center">
+              <p className="text-muted-foreground">Loading videos...</p>
+            </div>
+          ) : interactions.length === 0 ? (
+            <div className="p-8 border rounded-lg bg-card text-center">
+              <p className="text-muted-foreground">
+                No videos found matching your filters
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-4">
+              {interactions.map((interaction) => {
+                const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+
+                return (
+                  <div
+                    key={interaction.videoId}
+                    className="p-6 border rounded-lg bg-card flex items-center justify-between"
+                  >
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <h2 className="text-lg font-semibold">
+                          {interaction.videoId}
+                        </h2>
+                        {isAnnotated && (
+                          <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
+                            Annotated
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        Vendor {interaction.vendorId} • Session{" "}
+                        {interaction.sessionId} • Interaction{" "}
+                        {interaction.interactionId}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {interaction.label} • {interaction.split}
+                      </div>
+                    </div>
+
+                    <Link
+                      href={`/videos/${interaction.videoId}`}
+                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                    >
+                      {isAnnotated ? "Edit" : "Label"} →
+                    </Link>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 pt-4">
+              <button
+                onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                disabled={currentPage === 1 || loading}
+                className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+                Previous
+              </button>
+
+              <div className="flex items-center gap-2">
+                {/* Show first page */}
+                {currentPage > 3 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={loading}
+                      className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      1
+                    </button>
+                    {currentPage > 4 && <span className="px-2">...</span>}
+                  </>
+                )}
+
+                {/* Show pages around current */}
+                {Array.from({ length: totalPages }, (_, i) => i + 1)
+                  .filter(
+                    (page) =>
+                      page >= currentPage - 2 && page <= currentPage + 2,
+                  )
+                  .map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => setCurrentPage(page)}
+                      disabled={loading}
+                      className={`px-3 py-2 border rounded-lg transition-colors disabled:opacity-50 ${
+                        page === currentPage
+                          ? "bg-primary text-primary-foreground"
+                          : "hover:bg-accent"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+
+                {/* Show last page */}
+                {currentPage < totalPages - 2 && (
+                  <>
+                    {currentPage < totalPages - 3 && (
+                      <span className="px-2">...</span>
+                    )}
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={loading}
+                      className="px-3 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+                }
+                disabled={currentPage === totalPages || loading}
+                className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

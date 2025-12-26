@@ -57,16 +57,36 @@ describe("/api/videos", () => {
     { videoId: "V00_S0001_I00000003" },
   ];
 
+  const mockAnnotationsWithLabels = [
+    {
+      videoId: "V00_S0001_I00000001",
+      speaker1Label: "Morph A",
+      speaker2Label: "Morph B",
+      createdAt: new Date("2024-01-01"),
+    },
+    {
+      videoId: "V00_S0001_I00000003",
+      speaker1Label: "Morph A",
+      speaker2Label: "Morph A",
+      createdAt: new Date("2024-01-02"),
+    },
+  ];
+
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("should return paginated videos with default parameters", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(100);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(100) // total for query
+      .mockResolvedValueOnce(100) // total count for filters
+      .mockResolvedValueOnce(60) // improvised count
+      .mockResolvedValueOnce(40); // naturalistic count
     (prisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue(
-      mockAnnotations,
-    );
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
+      .mockResolvedValueOnce(mockAnnotationsWithLabels) // for annotations with labels
+      .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
 
     await testApiHandler({
       appHandler,
@@ -80,14 +100,22 @@ describe("/api/videos", () => {
         expect(data.limit).toBe(20);
         expect(data.total).toBe(100);
         expect(data.totalPages).toBe(5);
+        expect(data.stats).toBeDefined();
       },
     });
   });
 
   it("should handle pagination parameters", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(100);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
     (prisma.video.findMany as jest.Mock).mockResolvedValue([]);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     await testApiHandler({
       appHandler,
@@ -110,9 +138,16 @@ describe("/api/videos", () => {
   });
 
   it("should filter by search term", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(1);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
     (prisma.video.findMany as jest.Mock).mockResolvedValue([mockVideos[0]]);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     await testApiHandler({
       appHandler,
@@ -138,9 +173,16 @@ describe("/api/videos", () => {
   });
 
   it("should filter by label", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(50);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(50)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
     (prisma.video.findMany as jest.Mock).mockResolvedValue([mockVideos[0]]);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     await testApiHandler({
       appHandler,
@@ -161,11 +203,17 @@ describe("/api/videos", () => {
   });
 
   it("should filter by annotated status", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(2);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(2)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
     (prisma.video.findMany as jest.Mock).mockResolvedValue([mockVideos[0]]);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue(
-      mockAnnotations,
-    );
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations) // for the annotated filter itself
+      .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
+      .mockResolvedValueOnce([]) // for annotations with labels
+      .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
 
     await testApiHandler({
       appHandler,
@@ -204,8 +252,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(40); // naturalistic count
     (prisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
     (prisma.annotation.findMany as jest.Mock)
-      .mockResolvedValueOnce(mockAnnotations) // for page results
-      .mockResolvedValueOnce(mockAnnotations); // for filter counts
+      .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
+      .mockResolvedValueOnce(mockAnnotationsWithLabels) // for annotations with labels
+      .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
 
     await testApiHandler({
       appHandler,
@@ -225,9 +274,16 @@ describe("/api/videos", () => {
   });
 
   it("should format video paths correctly", async () => {
-    (prisma.video.count as jest.Mock).mockResolvedValue(1);
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
     (prisma.video.findMany as jest.Mock).mockResolvedValue([mockVideos[0]]);
-    (prisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([]);
 
     await testApiHandler({
       appHandler,
@@ -241,6 +297,127 @@ describe("/api/videos", () => {
         );
         expect(video.participant2VideoPath).toContain(
           "fileId=V00_S0001_I00000001_P0002",
+        );
+      },
+    });
+  });
+
+  it("should return stats with morph distribution", async () => {
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
+    (prisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations)
+      .mockResolvedValueOnce(mockAnnotationsWithLabels)
+      .mockResolvedValueOnce(mockAnnotations);
+
+    await testApiHandler({
+      appHandler,
+      test: async ({ fetch }) => {
+        const response = await fetch({ method: "GET" });
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.stats).toBeDefined();
+        expect(data.stats.morphACount).toBe(3); // 2 from first annotation, 2 from second
+        expect(data.stats.morphBCount).toBe(1);
+        expect(data.stats.morphAPercentage).toBe(75);
+        expect(data.stats.morphBPercentage).toBe(25);
+      },
+    });
+  });
+
+  it("should handle sortBy parameter", async () => {
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
+    (prisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations)
+      .mockResolvedValueOnce(mockAnnotationsWithLabels)
+      .mockResolvedValueOnce(mockAnnotations);
+
+    await testApiHandler({
+      appHandler,
+      url: "/?sortBy=annotatedAt",
+      test: async ({ fetch }) => {
+        const response = await fetch({ method: "GET" });
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        expect(data.interactions).toHaveLength(2);
+        // Videos should have annotatedAt field
+        expect(data.interactions[0]).toHaveProperty("annotatedAt");
+      },
+    });
+  });
+
+  it("should sort by annotation date when sortBy is annotatedAt", async () => {
+    const videosWithAnnotations = [
+      { ...mockVideos[0], videoId: "V00_S0001_I00000001" },
+      { ...mockVideos[1], videoId: "V00_S0001_I00000003" },
+      { ...mockVideos[0], videoId: "V00_S0001_I00000004" }, // Not annotated
+    ];
+
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(3)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
+    (prisma.video.findMany as jest.Mock).mockResolvedValue(
+      videosWithAnnotations,
+    );
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations)
+      .mockResolvedValueOnce(mockAnnotationsWithLabels)
+      .mockResolvedValueOnce(mockAnnotations);
+
+    await testApiHandler({
+      appHandler,
+      url: "/?sortBy=annotatedAt",
+      test: async ({ fetch }) => {
+        const response = await fetch({ method: "GET" });
+        const data = await response.json();
+
+        expect(response.status).toBe(200);
+        // Annotated videos should come first, sorted by date (newest first)
+        expect(data.interactions[0].videoId).toBe("V00_S0001_I00000003");
+        expect(data.interactions[1].videoId).toBe("V00_S0001_I00000001");
+      },
+    });
+  });
+
+  it("should default to videoId sort when sortBy is not specified", async () => {
+    (prisma.video.count as jest.Mock)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(100)
+      .mockResolvedValueOnce(60)
+      .mockResolvedValueOnce(40);
+    (prisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
+    (prisma.annotation.findMany as jest.Mock)
+      .mockResolvedValueOnce(mockAnnotations)
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce(mockAnnotations);
+
+    await testApiHandler({
+      appHandler,
+      test: async ({ fetch }) => {
+        const response = await fetch({ method: "GET" });
+
+        expect(response.status).toBe(200);
+        expect(prisma.video.findMany).toHaveBeenCalledWith(
+          expect.objectContaining({
+            orderBy: [
+              { vendorId: "asc" },
+              { sessionId: "asc" },
+              { interactionId: "asc" },
+            ],
+          }),
         );
       },
     });

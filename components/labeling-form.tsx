@@ -116,8 +116,8 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         throw new Error("Failed to save annotation");
       }
 
-      // Navigate back to videos list
-      router.push("/videos");
+      // Navigate back to home page
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Error saving annotation:", error);
@@ -153,7 +153,8 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         throw new Error("Failed to delete annotation");
       }
 
-      // Refresh the page to show clean state
+      // Navigate back to home page
+      router.push("/");
       router.refresh();
     } catch (error) {
       console.error("Error deleting annotation:", error);
@@ -294,7 +295,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={() => router.push("/videos")}
+            onClick={() => router.push("/")}
             className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors"
           >
             <ArrowLeft size={16} />
