@@ -94,14 +94,14 @@ describe("VideoList", () => {
 
     const firstVideo = screen
       .getByText("V00_S0001_I00000001")
-      .closest("div.p-6");
+      .closest("div.p-6") as HTMLElement;
     const secondVideo = screen
       .getByText("V00_S0001_I00000002")
-      .closest("div.p-6");
+      .closest("div.p-6") as HTMLElement;
 
-    expect(within(firstVideo!).getByText("Annotated")).toBeInTheDocument();
+    expect(within(firstVideo).getByText("Annotated")).toBeInTheDocument();
     expect(
-      within(secondVideo!).queryByText("Annotated"),
+      within(secondVideo).queryByText("Annotated"),
     ).not.toBeInTheDocument();
   });
 
@@ -114,13 +114,13 @@ describe("VideoList", () => {
 
     const firstVideo = screen
       .getByText("V00_S0001_I00000001")
-      .closest("div.p-6");
+      .closest("div.p-6") as HTMLElement;
     const secondVideo = screen
       .getByText("V00_S0001_I00000002")
-      .closest("div.p-6");
+      .closest("div.p-6") as HTMLElement;
 
-    expect(within(firstVideo!).getByText(/Edit/)).toBeInTheDocument();
-    expect(within(secondVideo!).getByText(/Label/)).toBeInTheDocument();
+    expect(within(firstVideo).getByText(/Edit/)).toBeInTheDocument();
+    expect(within(secondVideo).getByText(/Label/)).toBeInTheDocument();
   });
 
   it("should filter videos by search term", async () => {
