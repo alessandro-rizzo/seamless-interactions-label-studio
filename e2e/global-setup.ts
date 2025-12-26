@@ -38,6 +38,18 @@ async function globalSetup() {
       },
     });
 
+    // Seed database with test videos
+    console.log("🌱 Seeding test data...");
+    execSync("node e2e/seed-db.js", {
+      stdio: "inherit",
+      cwd: process.cwd(),
+      env: {
+        ...process.env,
+        DATABASE_URL:
+          "postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public",
+      },
+    });
+
     console.log("✅ Setup complete");
   } catch (error) {
     console.error("❌ Setup failed:", error);
