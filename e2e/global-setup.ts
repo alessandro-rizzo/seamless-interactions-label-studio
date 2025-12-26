@@ -4,8 +4,8 @@ async function globalSetup() {
   console.log("🚀 Starting PostgreSQL via Docker Compose...");
 
   try {
-    // Start docker-compose
-    execSync("docker-compose up -d postgres", {
+    // Start docker-compose (use 'docker compose' for V2 compatibility)
+    execSync("docker compose up -d postgres", {
       stdio: "inherit",
       cwd: process.cwd(),
     });

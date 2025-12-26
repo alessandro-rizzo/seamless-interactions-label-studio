@@ -4,9 +4,9 @@ async function globalTeardown() {
   console.log("🧹 Cleaning up...");
 
   try {
-    // Stop docker-compose
+    // Stop docker-compose (use 'docker compose' for V2 compatibility)
     console.log("🐳 Stopping Docker Compose...");
-    execSync("docker-compose down", {
+    execSync("docker compose down", {
       stdio: "inherit",
       cwd: process.cwd(),
     });
