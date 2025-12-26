@@ -13,6 +13,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   session: {
     strategy: "database", // Use database sessions for security
+    maxAge: 60 * 60, // 1 hour (in seconds)
   },
   pages: {
     signIn: "/auth/signin",
