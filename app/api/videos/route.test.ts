@@ -14,7 +14,7 @@ jest.mock("@/lib/auth", () => ({
         name: "Test User",
         email: "test@example.com",
       },
-    })
+    }),
   ),
 }));
 

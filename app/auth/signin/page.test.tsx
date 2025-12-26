@@ -34,9 +34,11 @@ describe("SignInPage", () => {
   it("should render form with server action", () => {
     render(<SignInPage />);
 
-    const form = screen.getByRole("button", {
-      name: /sign in with google/i,
-    }).closest("form");
+    const form = screen
+      .getByRole("button", {
+        name: /sign in with google/i,
+      })
+      .closest("form");
 
     expect(form).toBeInTheDocument();
   });

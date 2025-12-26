@@ -30,7 +30,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "DATABASE_URL=postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public pnpm dev",
+    command:
+      "DATABASE_URL=postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: false, // Always start fresh server for tests
     timeout: 120000,
