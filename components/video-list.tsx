@@ -159,35 +159,33 @@ export function VideoList({ showStats = false }: VideoListProps) {
               </h3>
               {totalSpeakers > 0 ? (
                 <div className="space-y-3">
-                  <div>
-                    <div className="flex justify-between mb-1">
+                  <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-blue-500" />
                       <span className="font-medium">Morph A</span>
                       <span className="font-semibold">
-                        {stats.morphACount} / {totalSpeakers} (
-                        {stats.morphAPercentage.toFixed(1)}%)
+                        {stats.morphACount} ({stats.morphAPercentage.toFixed(1)}
+                        %)
                       </span>
                     </div>
-                    <div className="w-full bg-secondary rounded-full h-3">
-                      <div
-                        className="bg-blue-500 h-3 rounded-full transition-all"
-                        style={{ width: `${stats.morphAPercentage}%` }}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="flex justify-between mb-1">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-500" />
                       <span className="font-medium">Morph B</span>
                       <span className="font-semibold">
-                        {stats.morphBCount} / {totalSpeakers} (
-                        {stats.morphBPercentage.toFixed(1)}%)
+                        {stats.morphBCount} ({stats.morphBPercentage.toFixed(1)}
+                        %)
                       </span>
                     </div>
-                    <div className="w-full bg-secondary rounded-full h-3">
-                      <div
-                        className="bg-green-500 h-3 rounded-full transition-all"
-                        style={{ width: `${stats.morphBPercentage}%` }}
-                      />
-                    </div>
+                  </div>
+                  <div className="flex w-full bg-secondary rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-blue-500 h-3 transition-all"
+                      style={{ width: `${stats.morphAPercentage}%` }}
+                    />
+                    <div
+                      className="bg-green-500 h-3 transition-all"
+                      style={{ width: `${stats.morphBPercentage}%` }}
+                    />
                   </div>
                 </div>
               ) : (
