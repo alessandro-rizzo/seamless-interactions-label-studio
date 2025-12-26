@@ -17,7 +17,6 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 - 📊 **Statistics Dashboard** - View morph distribution, completion rates, and time metrics
 - 🔍 **Advanced Filtering** - Filter by download status, annotation status, and interaction type (improvised/naturalistic)
 - 💾 **Persistent Storage** - PostgreSQL database for reliable persistence
-- 📤 **Export Options** - Download annotations as CSV or JSON
 - 🎨 **Dark Mode UI** - Modern dark theme optimized for extended use
 - ⚡ **Fast & Local** - Runs entirely on your machine
 
@@ -94,7 +93,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 10. **Clear Annotation** - Use "Clear Annotation" button to delete the record if needed
 11. **Clean Up** - Delete the video from disk using the trash icon to save space
 
-### Dashboard & Export
+### Dashboard
 
 The home page shows:
 
@@ -105,11 +104,6 @@ The home page shows:
 - **Labeling Time** - Total and average time spent per video
 - **Morph Distribution** - Visual breakdown of Morph A vs B proportions
 - **Recent Annotations** - Latest 10 annotations with quick access
-
-**Export Options:**
-
-- Click "Export JSON" to download all annotations as JSON
-- Click "Export CSV" to download all annotations as CSV
 
 ### Keyboard Navigation
 
@@ -127,7 +121,6 @@ seamless-interactions-label-studio/
 │   ├── api/                      # Backend API routes
 │   │   ├── annotations/          # Annotation CRUD operations
 │   │   ├── download/             # Video download endpoint
-│   │   ├── export/              # CSV/JSON export endpoint
 │   │   ├── interactions/        # Remote dataset listing
 │   │   └── video/               # Video streaming with range support
 │   ├── videos/                  # Video list and labeling pages
@@ -213,7 +206,6 @@ The e2e test covers the complete labeling workflow:
 - Navigating to videos list and downloading a video
 - Playing video, selecting morphs, setting confidence, adding comments
 - Saving annotation and verifying stats update
-- Exporting JSON and CSV to verify data
 - Cleanup (deleting annotation and downloaded video)
 
 ### Continuous Integration
@@ -292,13 +284,6 @@ pnpm start
 **DELETE /api/download?fileId1={id1}&fileId2={id2}**
 
 - Deletes downloaded videos from disk
-
-### Export API
-
-**GET /api/export?format={csv|json}**
-
-- Downloads all annotations in specified format
-- Returns file with download headers
 
 ### Video API
 

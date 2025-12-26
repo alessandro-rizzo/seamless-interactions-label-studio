@@ -2,7 +2,6 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { getAvailableVideos } from "@/lib/dataset";
 import { formatTime, formatNumber } from "@/lib/utils";
-import { Download } from "lucide-react";
 
 export default async function Home() {
   const [videos, annotations] = await Promise.all([
@@ -65,32 +64,16 @@ export default async function Home() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Quick Actions */}
-      <div className="flex gap-3 mb-8">
+      <div className="mb-8">
         <Link
           href="/videos"
-          className="flex-1 p-8 border-2 rounded-lg bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors"
+          className="block p-8 border-2 rounded-lg bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors"
         >
           <h2 className="text-2xl font-semibold mb-2">📹 Start Labeling</h2>
           <p className="text-muted-foreground">
             Browse and label video interactions with speaker morphs
           </p>
         </Link>
-        <div className="flex flex-col gap-3">
-          <Link
-            href="/api/export?format=json"
-            className="flex items-center gap-2 px-6 py-4 border-2 rounded-lg bg-card hover:bg-accent transition-colors"
-          >
-            <Download size={20} />
-            <span className="font-semibold">Export JSON</span>
-          </Link>
-          <Link
-            href="/api/export?format=csv"
-            className="flex items-center gap-2 px-6 py-4 border-2 rounded-lg bg-card hover:bg-accent transition-colors"
-          >
-            <Download size={20} />
-            <span className="font-semibold">Export CSV</span>
-          </Link>
-        </div>
       </div>
 
       {/* Overview Stats */}
