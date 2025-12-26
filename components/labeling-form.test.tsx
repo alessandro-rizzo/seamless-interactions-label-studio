@@ -54,6 +54,7 @@ describe("LabelingForm", () => {
 
   const mockAnnotation: Annotation = {
     id: "1",
+    userId: "test-user-id",
     videoId: "V00_S0001_I00000001",
     vendorId: 0,
     sessionId: 1,

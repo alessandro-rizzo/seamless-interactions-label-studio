@@ -23,7 +23,7 @@ jest.mock("@/lib/auth", () => ({
   auth: jest.fn(),
 }));
 
-const mockAuth = auth as jest.MockedFunction<typeof auth>;
+const mockAuth = auth as unknown as jest.MockedFunction<typeof auth>;
 
 describe("/api/videos - Auth", () => {
   beforeEach(() => {
@@ -32,6 +32,7 @@ describe("/api/videos - Auth", () => {
 
   describe("GET - Unauthorized", () => {
     it("should return 401 when user is not authenticated", async () => {
+      // @ts-expect-error - Mocking auth return value
       mockAuth.mockResolvedValue(null);
 
       await testApiHandler({
@@ -47,6 +48,7 @@ describe("/api/videos - Auth", () => {
     });
 
     it("should return 401 when session exists but no user id", async () => {
+      // @ts-expect-error - Mocking auth return value
       mockAuth.mockResolvedValue({
         user: { id: null } as any,
       } as any);
@@ -69,6 +71,7 @@ describe("/api/videos - Auth", () => {
       const { prisma } = await import("@/lib/db");
       const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
+      // @ts-expect-error - Mocking auth return value
       mockAuth.mockResolvedValue({
         user: { id: "user-1", email: "user1@test.com" },
       } as any);
@@ -118,6 +121,7 @@ describe("/api/videos - Auth", () => {
       const { prisma } = await import("@/lib/db");
       const mockPrisma = prisma as jest.Mocked<typeof prisma>;
 
+      // @ts-expect-error - Mocking auth return value
       mockAuth.mockResolvedValue({
         user: { id: "user-1", email: "user1@test.com" },
       } as any);
