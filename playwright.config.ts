@@ -31,7 +31,12 @@ export default defineConfig({
   ],
   webServer: {
     command:
-      "DATABASE_URL=postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public pnpm dev",
+      'DATABASE_URL="postgresql://seamless:seamless@localhost:5432/seamless_interactions?schema=public" ' +
+      'NEXTAUTH_URL="http://localhost:3000" ' +
+      'NEXTAUTH_SECRET="test-secret-for-e2e-tests-only" ' +
+      'GOOGLE_CLIENT_ID="dummy-client-id" ' +
+      'GOOGLE_CLIENT_SECRET="dummy-client-secret" ' +
+      "pnpm dev",
     url: "http://localhost:3000",
     reuseExistingServer: false, // Always start fresh server for tests
     timeout: 120000,
