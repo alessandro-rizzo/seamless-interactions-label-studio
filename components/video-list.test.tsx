@@ -467,8 +467,8 @@ describe("VideoList", () => {
 
     expect(screen.getByText(/Morph A/)).toBeInTheDocument();
     expect(screen.getByText(/Morph B/)).toBeInTheDocument();
-    expect(screen.getByText(/30 \/ 100 \(30.0%\)/)).toBeInTheDocument();
-    expect(screen.getByText(/70 \/ 100 \(70.0%\)/)).toBeInTheDocument();
+    expect(screen.getByText(/30 \(30.0%\)/)).toBeInTheDocument();
+    expect(screen.getByText(/70 \(70.0%\)/)).toBeInTheDocument();
   });
 
   it("should have sort dropdown with correct options", async () => {
