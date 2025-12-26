@@ -4,6 +4,9 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 
 ## Features
 
+- 🔐 **Google OAuth Authentication** - Secure sign-in with email allowlist and 1-hour sessions
+- 👥 **Multi-User Support** - Multiple labelers can work independently on the same dataset
+- 🔒 **Per-User Isolation** - Each user sees only their own annotations and statistics
 - 📊 **Unified Dashboard** - Stats and video list on one page with sticky header for efficient workflow
 - 📋 **Browse All Videos** - See all 64,000+ videos available in the dataset
 - 📹 **Synchronized Dual Video Player** - Watch both participants side-by-side with frame-perfect synchronization
@@ -79,6 +82,163 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 **See [SETUP.md](./SETUP.md) for detailed setup instructions, production deployment, and troubleshooting.**
 
+## Authentication
+
+The application uses **Google OAuth** via [NextAuth.js v5](https://authjs.dev/) for secure user authentication. Each user gets their own isolated workspace, allowing multiple labelers to annotate the same videos independently.
+
+### How It Works
+
+1. **Google OAuth Login** - Users sign in with their Google account (no password stored in the app)
+2. **Email Allowlist** - Only users with pre-approved email addresses can access the app
+3. **Database Sessions** - Sessions are stored in PostgreSQL for security and server-side control
+4. **1-Hour Expiration** - Sessions automatically expire after 1 hour of inactivity
+5. **Per-User Isolation** - Each user sees only their own annotations and statistics
+
+### Local Development Setup
+
+1. **Get Google OAuth Credentials**:
+   - Visit [Google Cloud Console](https://console.cloud.google.com/apis/credentials)
+   - Create a new project or select an existing one
+   - Configure OAuth consent screen (User Type: External)
+   - Create OAuth 2.0 Client ID (Application type: Web application)
+   - Add authorized redirect URI: `http://localhost:3000/api/auth/callback/google`
+   - Copy the Client ID and Client Secret
+
+2. **Configure Environment Variables**:
+
+   Add to your `.env` file:
+   ```bash
+   # Auth Configuration
+   NEXTAUTH_URL="http://localhost:3000"
+   NEXTAUTH_SECRET="your-secret-here"  # Generate with: openssl rand -base64 32
+   GOOGLE_CLIENT_ID="your-client-id.apps.googleusercontent.com"
+   GOOGLE_CLIENT_SECRET="your-client-secret"
+   ```
+
+3. **Configure Email Allowlist**:
+
+   Edit `lib/auth.ts` to add authorized user emails:
+   ```typescript
+   const allowedEmails = [
+     "user1@gmail.com",
+     "user2@example.com",
+     // Add more authorized emails here
+   ];
+   ```
+
+4. **Sign In**:
+   - Navigate to http://localhost:3000
+   - You'll be redirected to `/auth/signin`
+   - Click "Sign in with Google"
+   - Use an email from your allowlist
+
+### Production Deployment
+
+For production (e.g., Vercel):
+
+1. **Add environment variables** in your hosting platform:
+   - `DATABASE_URL` - Your production PostgreSQL connection string
+   - `NEXTAUTH_URL` - Your production domain (e.g., `https://yourapp.vercel.app`)
+   - `NEXTAUTH_SECRET` - Same secret as local (keep it secret!)
+   - `GOOGLE_CLIENT_ID` - Your Google OAuth client ID
+   - `GOOGLE_CLIENT_SECRET` - Your Google OAuth client secret
+
+2. **Update Google OAuth settings**:
+   - Add production redirect URI: `https://yourapp.vercel.app/api/auth/callback/google`
+   - Optionally add wildcard for preview deployments: `https://*.vercel.app/api/auth/callback/google`
+
+3. **Update allowlist** in `lib/auth.ts` with production user emails
+
+### Multi-User Features
+
+- **Isolated Workspaces** - Each user has their own set of annotations
+- **Independent Progress** - Multiple users can label the same videos without conflicts
+- **Per-User Statistics** - Dashboard shows stats for only the signed-in user's annotations
+- **Concurrent Labeling** - Different users can work on the same dataset simultaneously
+
+### Session Management
+
+- **Expiration**: Sessions automatically expire after **1 hour** of inactivity
+- **Secure Storage**: Sessions are stored in the database, not just cookies
+- **Cookie Names**:
+  - Local (HTTP): `authjs.session-token`
+  - Production (HTTPS): `__Secure-authjs.session-token`
+- **Sign Out**: Users can manually sign out via the user menu (top right)
+
+### Testing with Authentication
+
+#### Unit Tests
+
+Unit tests mock the authentication layer to avoid requiring real Google OAuth:
+
+```typescript
+// Example mock in test files
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: { id: "test-user-id", name: "Test User", email: "test@example.com" },
+    })
+  ),
+}));
+```
+
+All API routes and components are tested with mocked authentication. Run unit tests with:
+
+```bash
+pnpm test
+```
+
+#### E2E Tests
+
+E2E tests use a special auth setup that bypasses Google OAuth:
+
+1. **Setup Phase** (`e2e/auth.setup.ts`):
+   - Creates a test user directly in the database (`e2e-test@example.com`)
+   - Generates a valid session token
+   - Saves the session cookie to `playwright/.auth/user.json`
+
+2. **Test Execution**:
+   - Tests load the saved authentication state
+   - No actual Google sign-in required
+   - Tests run as an authenticated user
+
+3. **Environment Variables**:
+   - Playwright config includes dummy OAuth credentials for the dev server
+   - `NEXTAUTH_SECRET="test-secret-for-e2e-tests-only"`
+   - `GOOGLE_CLIENT_ID="dummy-client-id"`
+   - `GOOGLE_CLIENT_SECRET="dummy-client-secret"`
+
+Run e2e tests with:
+
+```bash
+pnpm test:e2e
+```
+
+The e2e test suite automatically:
+- Starts PostgreSQL via Docker
+- Creates the test user and session
+- Runs the full labeling workflow
+- Cleans up test data afterwards
+
+### Troubleshooting Auth
+
+**Can't sign in locally**:
+- Check that your email is in the allowlist (`lib/auth.ts`)
+- Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
+- Ensure redirect URI matches: `http://localhost:3000/api/auth/callback/google`
+- Check browser console for errors
+
+**401 Unauthorized errors**:
+- Sign out and sign back in to refresh your session
+- Check that `NEXTAUTH_SECRET` is set
+- Verify your session hasn't expired (1 hour limit)
+- Clear cookies and try again
+
+**E2E tests failing**:
+- Ensure Docker PostgreSQL is running
+- Check that auth environment variables are set in `playwright.config.ts`
+- Run `pnpm test:e2e` to see detailed logs
+
 ## Usage Guide
 
 ### Labeling Workflow
@@ -122,13 +282,15 @@ seamless-interactions-label-studio/
 │   └── pr.yml                   # PR checks (lint, tests)
 ├── app/                          # Next.js App Router
 │   ├── api/                      # Backend API routes
-│   │   ├── annotations/          # Annotation CRUD operations
+│   │   ├── annotations/          # Annotation CRUD operations (auth required)
+│   │   ├── auth/[...nextauth]/  # NextAuth.js endpoints
 │   │   ├── download/             # Video download endpoint
 │   │   ├── video/               # Video streaming with range support
-│   │   └── videos/              # Video list API with filtering/sorting
+│   │   └── videos/              # Video list API with filtering/sorting (auth required)
+│   ├── auth/signin/             # Sign-in page
 │   ├── videos/                  # Video labeling pages
 │   │   └── [videoId]/           # Dynamic annotation page per video
-│   ├── layout.tsx               # Root layout with fixed header
+│   ├── layout.tsx               # Root layout with fixed header and user menu
 │   ├── page.tsx                 # Home page with stats and video list
 │   └── globals.css              # Tailwind styles
 ├── components/                   # React components
@@ -136,34 +298,87 @@ seamless-interactions-label-studio/
 │   ├── labeling-form.test.tsx   # Component tests
 │   ├── synchronized-video-player.tsx  # Dual video player with sync
 │   ├── synchronized-video-player.test.tsx
+│   ├── user-menu.tsx            # User profile and sign-out menu
+│   ├── user-menu.test.tsx
 │   ├── video-list.tsx           # Filterable video list with pagination
 │   ├── video-list.test.tsx
 │   ├── video-player.tsx         # Single video player component
 │   └── video-player.test.tsx
 ├── e2e/                         # Playwright end-to-end tests
+│   ├── auth.setup.ts            # E2E auth setup (creates test user)
+│   ├── clear-db.js              # Database cleanup script
+│   ├── seed-db.js               # Test data seeding script
+│   ├── global-setup.ts          # E2E global setup
+│   ├── global-teardown.ts       # E2E global teardown
 │   └── labeling-workflow.spec.ts  # Full labeling workflow test
 ├── lib/                         # Core utilities
+│   ├── auth.ts                 # NextAuth.js configuration
 │   ├── db.ts                   # Prisma client singleton
 │   ├── dataset.ts              # Local dataset scanning
 │   ├── dataset-remote.ts       # Remote dataset listing from GitHub
 │   └── utils.ts                # Helper functions
 ├── prisma/                      # Database
-│   └── schema.prisma           # Database schema definition
+│   └── schema.prisma           # Database schema with auth tables
+├── types/                       # TypeScript type definitions
+│   └── next-auth.d.ts          # NextAuth.js type extensions
 ├── downloads/                   # Downloaded videos (gitignored)
+├── middleware.ts                # Auth middleware (route protection)
 ├── jest.config.js              # Jest configuration
 ├── jest.setup.js               # Jest setup with mocks
-├── playwright.config.ts        # Playwright configuration
+├── playwright.config.ts        # Playwright configuration with auth env vars
 └── package.json                 # Dependencies and scripts
 ```
 
 ## Database Schema
 
-The `Annotation` model stores:
+### Authentication Tables
+
+**User** - Stores user information from Google OAuth:
+
+| Field           | Type     | Description                          |
+| --------------- | -------- | ------------------------------------ |
+| `id`            | String   | Unique identifier (CUID)             |
+| `email`         | String   | User's email (unique)                |
+| `name`          | String   | User's display name                  |
+| `image`         | String   | User's profile picture URL           |
+| `emailVerified` | DateTime | Email verification timestamp         |
+| `createdAt`     | DateTime | Account creation timestamp           |
+| `updatedAt`     | DateTime | Last update timestamp                |
+
+**Session** - Stores active user sessions:
+
+| Field          | Type     | Description                           |
+| -------------- | -------- | ------------------------------------- |
+| `id`           | String   | Unique identifier (CUID)              |
+| `sessionToken` | String   | Session token (unique)                |
+| `userId`       | String   | Foreign key to User                   |
+| `expires`      | DateTime | Session expiration time (1 hour max)  |
+
+**Account** - Stores OAuth account information (managed by NextAuth):
+
+| Field               | Type    | Description                        |
+| ------------------- | ------- | ---------------------------------- |
+| `id`                | String  | Unique identifier (CUID)           |
+| `userId`            | String  | Foreign key to User                |
+| `type`              | String  | Account type (oauth)               |
+| `provider`          | String  | OAuth provider (google)            |
+| `providerAccountId` | String  | Google account ID                  |
+| `access_token`      | String  | OAuth access token                 |
+| `refresh_token`     | String  | OAuth refresh token                |
+| `expires_at`        | Int     | Token expiration timestamp         |
+| `token_type`        | String  | Token type (Bearer)                |
+| `scope`             | String  | OAuth scopes granted               |
+| `id_token`          | String  | OpenID Connect ID token            |
+
+### Annotation Table
+
+**Annotation** - Stores video annotations (per user):
 
 | Field                | Type     | Description                                                       |
 | -------------------- | -------- | ----------------------------------------------------------------- |
 | `id`                 | String   | Unique identifier (CUID)                                          |
-| `videoId`            | String   | Video identifier (V{vendor}\_S{session}\_I{interaction}) - unique |
+| `userId`             | String   | Foreign key to User (who created this annotation)                 |
+| `videoId`            | String   | Video identifier (V{vendor}\_S{session}\_I{interaction})          |
 | `vendorId`           | Int      | Vendor ID from dataset                                            |
 | `sessionId`          | Int      | Session ID from dataset                                           |
 | `interactionId`      | Int      | Interaction ID from dataset                                       |
@@ -178,6 +393,8 @@ The `Annotation` model stores:
 | `labelingTimeMs`     | Int      | Time spent labeling (milliseconds)                                |
 | `createdAt`          | DateTime | Creation timestamp                                                |
 | `updatedAt`          | DateTime | Last update timestamp                                             |
+
+**Unique Constraint**: `[userId, videoId]` - Each user can have one annotation per video
 
 ## Development
 
@@ -251,6 +468,7 @@ pnpm start
 
 - **Framework**: [Next.js 15](https://nextjs.org/) (App Router, Server Components)
 - **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Authentication**: [NextAuth.js v5](https://authjs.dev/) (Google OAuth, Database Sessions)
 - **Styling**: [Tailwind CSS](https://tailwindcss.com/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/) + [Prisma ORM](https://www.prisma.io/)
 - **Testing**: [Jest](https://jestjs.io/) + [React Testing Library](https://testing-library.com/) + [Playwright](https://playwright.dev/)
@@ -259,30 +477,37 @@ pnpm start
 
 ## API Reference
 
+**Authentication**: All API endpoints require authentication. Requests must include a valid session cookie. Unauthenticated requests return `401 Unauthorized`.
+
 ### Annotations API
 
 **GET /api/annotations**
 
-- Returns all annotations ordered by creation date
+- Returns all annotations for the authenticated user, ordered by creation date
+- **Auth**: Required - filters by `userId` automatically
 
 **POST /api/annotations**
 
-- Creates or updates an annotation (upsert by videoId)
+- Creates or updates an annotation for the authenticated user (upsert by `userId` + `videoId`)
+- **Auth**: Required - automatically associates with authenticated user
 - Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, labelingTimeMs }`
 
 **DELETE /api/annotations?videoId={videoId}**
 
-- Deletes an annotation by videoId
+- Deletes the authenticated user's annotation for the specified video
+- **Auth**: Required - can only delete own annotations
 
 **DELETE /api/annotations?id={id}**
 
-- Deletes an annotation by ID
+- Deletes an annotation by ID (must be owned by authenticated user)
+- **Auth**: Required - ownership verified before deletion
 
 ### Videos API
 
 **GET /api/videos**
 
-- Returns paginated video list with filtering and sorting
+- Returns paginated video list with filtering and sorting for the authenticated user
+- **Auth**: Required - all stats and filters are per-user
 - Query params:
   - `page` - Page number (default: 1)
   - `limit` - Items per page (default: 20)
@@ -292,11 +517,11 @@ pnpm start
   - `sortBy` - Sort order (videoId/annotatedAt)
 - Returns:
   - `interactions` - Array of video metadata
-  - `annotatedVideoIds` - Array of annotated video IDs
+  - `annotatedVideoIds` - Array of video IDs annotated by the user
   - `total` - Total matching videos
   - `page`, `limit`, `totalPages` - Pagination info
-  - `filterCounts` - Counts for each filter option
-  - `stats` - Morph distribution statistics
+  - `filterCounts` - Counts for each filter option (per-user)
+  - `stats` - Morph distribution statistics (per-user)
 
 ### Download API
 
