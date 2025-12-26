@@ -11,7 +11,10 @@ export function middleware(request: NextRequest) {
   }
 
   // Check for session cookie (set by NextAuth)
-  const sessionCookie = request.cookies.get("authjs.session-token");
+  // Note: Cookie name differs between HTTP (localhost) and HTTPS (production)
+  const sessionCookie =
+    request.cookies.get("__Secure-authjs.session-token") || // HTTPS (production)
+    request.cookies.get("authjs.session-token"); // HTTP (localhost)
 
   // Redirect unauthenticated users to sign-in
   if (!sessionCookie) {

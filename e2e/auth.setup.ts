@@ -40,7 +40,7 @@ setup("authenticate", async ({ page }) => {
 
     console.log("✅ Created test user and session");
 
-    // Set the session cookie
+    // Set the session cookie (use non-secure for localhost)
     await page.context().addCookies([
       {
         name: "authjs.session-token",
