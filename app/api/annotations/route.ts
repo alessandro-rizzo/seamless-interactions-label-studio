@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function GET() {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // FILTER: Only return current user's annotations
     const annotations = await prisma.annotation.findMany({
+      where: {
+        userId: session.user.id,
+      },
       orderBy: { createdAt: "desc" },
     });
+
     return NextResponse.json(annotations);
   } catch (error) {
     console.error("Error fetching annotations:", error);
@@ -18,6 +30,12 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const body = await request.json();
     const {
       videoId,
@@ -43,9 +61,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Upsert annotation (update if exists, create if not)
+    // CHANGED: Upsert using composite key [userId, videoId]
     const annotation = await prisma.annotation.upsert({
-      where: { videoId },
+      where: {
+        userId_videoId: {
+          userId: session.user.id,
+          videoId,
+        },
+      },
       update: {
         speaker1Label,
         speaker2Label,
@@ -57,6 +80,7 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
       create: {
+        userId: session.user.id,
         videoId,
         vendorId,
         sessionId,
@@ -85,6 +109,12 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
     const videoId = searchParams.get("videoId");
@@ -97,12 +127,29 @@ export async function DELETE(request: NextRequest) {
     }
 
     if (videoId) {
-      // Delete by videoId
+      // CHANGED: Delete by composite key [userId, videoId]
+      // This ensures users can only delete their own annotations
       await prisma.annotation.delete({
-        where: { videoId },
+        where: {
+          userId_videoId: {
+            userId: session.user.id,
+            videoId,
+          },
+        },
       });
     } else if (id) {
-      // Delete by id
+      // SECURITY: Verify ownership before deleting by ID
+      const annotation = await prisma.annotation.findUnique({
+        where: { id },
+      });
+
+      if (!annotation || annotation.userId !== session.user.id) {
+        return NextResponse.json(
+          { error: "Annotation not found or unauthorized" },
+          { status: 404 },
+        );
+      }
+
       await prisma.annotation.delete({
         where: { id },
       });

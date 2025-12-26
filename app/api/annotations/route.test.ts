@@ -4,11 +4,25 @@
 import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 
+// Mock auth
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "test@example.com",
+      },
+    })
+  ),
+}));
+
 // Mock Prisma
 jest.mock("@/lib/db", () => ({
   prisma: {
     annotation: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       upsert: jest.fn(),
       delete: jest.fn(),
     },
@@ -199,13 +213,24 @@ describe("/api/annotations", () => {
           expect(response.status).toBe(200);
           expect(data.success).toBe(true);
           expect(mockPrisma.annotation.delete).toHaveBeenCalledWith({
-            where: { videoId: "V1_S1_I1" },
+            where: {
+              userId_videoId: {
+                userId: "test-user-id",
+                videoId: "V1_S1_I1",
+              },
+            },
           });
         },
       });
     });
 
     it("should delete annotation by id", async () => {
+      // Mock findUnique to return an annotation owned by test user
+      (mockPrisma.annotation.findUnique as jest.Mock).mockResolvedValue({
+        id: "123",
+        userId: "test-user-id",
+        videoId: "V1_S1_I1",
+      });
       (mockPrisma.annotation.delete as jest.Mock).mockResolvedValue({});
 
       await testApiHandler({

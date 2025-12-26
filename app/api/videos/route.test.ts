@@ -5,6 +5,19 @@ import { testApiHandler } from "next-test-api-route-handler";
 import * as appHandler from "./route";
 import { prisma } from "@/lib/db";
 
+// Mock auth
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "test@example.com",
+      },
+    })
+  ),
+}));
+
 // Mock Prisma
 jest.mock("@/lib/db", () => ({
   prisma: {

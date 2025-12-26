@@ -1,8 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const userId = session.user.id;
+
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get("page") || "1");
     const limit = parseInt(searchParams.get("limit") || "20");
@@ -29,19 +38,21 @@ export async function GET(request: NextRequest) {
       where.label = labelFilter;
     }
 
-    // For annotated filter, we need to handle it differently
+    // CHANGED: For annotated filter, we need to handle per-user
     let videoIds: string[] | undefined;
     if (annotatedFilter === "annotated") {
-      // Get all annotated video IDs
+      // Get all annotated video IDs FOR THIS USER
       const annotated = await prisma.annotation.findMany({
+        where: { userId },
         select: { videoId: true },
         distinct: ["videoId"],
       });
       videoIds = annotated.map((a) => a.videoId);
-      where.videoId = videoIds.length > 0 ? { in: videoIds } : undefined;
+      where.videoId = videoIds.length > 0 ? { in: videoIds } : { in: [] };
     } else if (annotatedFilter === "not-annotated") {
-      // Get all annotated video IDs
+      // Get all annotated video IDs FOR THIS USER
       const annotated = await prisma.annotation.findMany({
+        where: { userId },
         select: { videoId: true },
         distinct: ["videoId"],
       });
@@ -51,21 +62,11 @@ export async function GET(request: NextRequest) {
 
     // Build order by clause
     let orderBy: any;
-    if (sortBy === "annotatedAt") {
-      // For sorting by annotation date, we'll need to join with annotations
-      // For now, we'll fetch all annotations and sort client-side
-      orderBy = [
-        { vendorId: "asc" },
-        { sessionId: "asc" },
-        { interactionId: "asc" },
-      ];
-    } else {
-      orderBy = [
-        { vendorId: "asc" },
-        { sessionId: "asc" },
-        { interactionId: "asc" },
-      ];
-    }
+    orderBy = [
+      { vendorId: "asc" },
+      { sessionId: "asc" },
+      { interactionId: "asc" },
+    ];
 
     // Get total count and videos in parallel
     const [total, videos, allAnnotations, annotations] = await Promise.all([
@@ -76,13 +77,15 @@ export async function GET(request: NextRequest) {
         skip,
         take: limit,
       }),
-      // Get all annotated video IDs for the badge display
+      // CHANGED: Get all annotated video IDs FOR THIS USER
       prisma.annotation.findMany({
+        where: { userId },
         select: { videoId: true },
         distinct: ["videoId"],
       }),
-      // Get all annotations for stats and sorting
+      // CHANGED: Get all annotations FOR THIS USER
       prisma.annotation.findMany({
+        where: { userId },
         select: {
           videoId: true,
           speaker1Label: true,
@@ -93,11 +96,12 @@ export async function GET(request: NextRequest) {
       }),
     ]);
 
-    // Get filter counts for the UI
+    // Get filter counts for the UI (PER USER)
     const [totalCount, annotatedCount, improvisedCount, naturalisticCount] =
       await Promise.all([
         prisma.video.count(),
         prisma.annotation.findMany({
+          where: { userId },
           select: { videoId: true },
           distinct: ["videoId"],
         }),
@@ -142,7 +146,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Calculate morph distribution stats
+    // Calculate morph distribution stats (PER USER)
     const totalSpeakers = annotations.length * 2;
     const morphACount = annotations.reduce((sum, a) => {
       return (

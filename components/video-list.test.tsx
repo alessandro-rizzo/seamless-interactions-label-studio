@@ -5,6 +5,19 @@ import { VideoList } from "./video-list";
 // Mock fetch globally
 global.fetch = jest.fn();
 
+// Mock auth
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "test@example.com",
+      },
+    })
+  ),
+}));
+
 const mockApiResponse = {
   interactions: [
     {

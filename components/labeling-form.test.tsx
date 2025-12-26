@@ -13,6 +13,19 @@ import type { Annotation } from "@prisma/client";
 // Mock fetch
 global.fetch = jest.fn();
 
+// Mock auth
+jest.mock("@/lib/auth", () => ({
+  auth: jest.fn(() =>
+    Promise.resolve({
+      user: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "test@example.com",
+      },
+    })
+  ),
+}));
+
 // Mock useRouter
 const mockPush = jest.fn();
 const mockRefresh = jest.fn();
