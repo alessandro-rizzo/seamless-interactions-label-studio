@@ -18,7 +18,11 @@
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
     "db:generate": "prisma generate",
-    "db:import": "tsx scripts/import-videos.ts"
+    "db:import": "tsx scripts/import-videos.ts",
+    "export:json": "tsx scripts/export-annotations.ts json",
+    "export:csv": "tsx scripts/export-annotations.ts csv",
+    "export:json:secure": "tsx scripts/export-annotations-secure.ts json",
+    "export:csv:secure": "tsx scripts/export-annotations-secure.ts csv"
   },
   "packageManager": "pnpm@9.15.4",
   "dependencies": {
@@ -33,6 +37,7 @@
     "@radix-ui/react-tabs": "^1.1.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "csv-writer": "^1.6.0",
     "lucide-react": "^0.468.0",
     "next": "^15.1.0",
     "next-auth": "5.0.0-beta.30",

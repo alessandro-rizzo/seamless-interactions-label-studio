@@ -52,6 +52,10 @@ next-env.d.ts
 # downloaded videos
 downloads/
 
+# exports (sensitive data)
+exports/
+.verification-*.json
+
 # cache
 .cache/
 
