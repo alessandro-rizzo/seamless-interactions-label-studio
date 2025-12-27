@@ -67,6 +67,28 @@ describe("LabelingForm", () => {
     speaker2Confidence: 3,
     speaker1Comments: "Comment 1",
     speaker2Comments: "Comment 2",
+    speaker1Prosody: [],
+    speaker1LexicalChoice: [],
+    speaker1TurnTaking: [],
+    speaker1Gaze: [],
+    speaker1FacialExpression: [],
+    speaker1Gesture: [],
+    speaker1Posture: [],
+    speaker1AffectRegulation: [],
+    speaker1InteractionalRole: [],
+    speaker1TimingLatency: [],
+    speaker1RepairBehavior: [],
+    speaker2Prosody: [],
+    speaker2LexicalChoice: [],
+    speaker2TurnTaking: [],
+    speaker2Gaze: [],
+    speaker2FacialExpression: [],
+    speaker2Gesture: [],
+    speaker2Posture: [],
+    speaker2AffectRegulation: [],
+    speaker2InteractionalRole: [],
+    speaker2TimingLatency: [],
+    speaker2RepairBehavior: [],
     labelingTimeMs: 5000,
     createdAt: new Date(),
     updatedAt: new Date(),
@@ -135,7 +157,9 @@ describe("LabelingForm", () => {
     expect(screen.getByText("3")).toBeInTheDocument();
 
     // Check comments
-    const textareas = screen.getAllByPlaceholderText("Add observations...");
+    const textareas = screen.getAllByPlaceholderText(
+      "Record observations, patterns, unexpected behaviors, or anything noteworthy that doesn't fit predefined categories...",
+    );
     expect(textareas[0]).toHaveValue("Comment 1");
     expect(textareas[1]).toHaveValue("Comment 2");
   });
@@ -301,7 +325,9 @@ describe("LabelingForm", () => {
     const user = userEvent.setup();
     render(<LabelingForm video={mockVideo} existingAnnotation={null} />);
 
-    const textareas = screen.getAllByPlaceholderText("Add observations...");
+    const textareas = screen.getAllByPlaceholderText(
+      "Record observations, patterns, unexpected behaviors, or anything noteworthy that doesn't fit predefined categories...",
+    );
     await user.type(textareas[0], "Test comment");
 
     expect(textareas[0]).toHaveValue("Test comment");

@@ -94,6 +94,31 @@ model Annotation {
   speaker1Comments  String?  @default("")
   speaker2Comments  String?  @default("")
 
+  // Category annotations (per speaker) - arrays of selected signal IDs
+  speaker1Prosody              String[] @default([])
+  speaker1LexicalChoice        String[] @default([])
+  speaker1TurnTaking           String[] @default([])
+  speaker1Gaze                 String[] @default([])
+  speaker1FacialExpression     String[] @default([])
+  speaker1Gesture              String[] @default([])
+  speaker1Posture              String[] @default([])
+  speaker1AffectRegulation     String[] @default([])
+  speaker1InteractionalRole    String[] @default([])
+  speaker1TimingLatency        String[] @default([])
+  speaker1RepairBehavior       String[] @default([])
+
+  speaker2Prosody              String[] @default([])
+  speaker2LexicalChoice        String[] @default([])
+  speaker2TurnTaking           String[] @default([])
+  speaker2Gaze                 String[] @default([])
+  speaker2FacialExpression     String[] @default([])
+  speaker2Gesture              String[] @default([])
+  speaker2Posture              String[] @default([])
+  speaker2AffectRegulation     String[] @default([])
+  speaker2InteractionalRole    String[] @default([])
+  speaker2TimingLatency        String[] @default([])
+  speaker2RepairBehavior       String[] @default([])
+
   // Metadata
   labelingTimeMs    Int      @default(0) // Time taken to label in milliseconds
 

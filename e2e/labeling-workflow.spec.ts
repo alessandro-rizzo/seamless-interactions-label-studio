@@ -75,7 +75,9 @@ test.describe("Labeling Workflow", () => {
     await confidenceSliders.nth(1).fill("5");
 
     // Step 8: Add comments
-    const commentTextareas = page.getByPlaceholder("Add observations...");
+    const commentTextareas = page.getByPlaceholder(
+      "Record observations, patterns, unexpected behaviors, or anything noteworthy that doesn't fit predefined categories...",
+    );
     await commentTextareas.nth(0).fill("E2E test comment for speaker 1");
     await commentTextareas.nth(1).fill("E2E test comment for speaker 2");
 

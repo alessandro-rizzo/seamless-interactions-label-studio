@@ -107,6 +107,7 @@ The application uses **Google OAuth** via [NextAuth.js v5](https://authjs.dev/) 
 2. **Configure Environment Variables**:
 
    Add to your `.env` file:
+
    ```bash
    # Auth Configuration
    NEXTAUTH_URL="http://localhost:3000"
@@ -118,6 +119,7 @@ The application uses **Google OAuth** via [NextAuth.js v5](https://authjs.dev/) 
 3. **Configure Email Allowlist**:
 
    Edit `lib/auth.ts` to add authorized user emails:
+
    ```typescript
    const allowedEmails = [
      "user1@gmail.com",
@@ -176,8 +178,12 @@ Unit tests mock the authentication layer to avoid requiring real Google OAuth:
 jest.mock("@/lib/auth", () => ({
   auth: jest.fn(() =>
     Promise.resolve({
-      user: { id: "test-user-id", name: "Test User", email: "test@example.com" },
-    })
+      user: {
+        id: "test-user-id",
+        name: "Test User",
+        email: "test@example.com",
+      },
+    }),
   ),
 }));
 ```
@@ -215,6 +221,7 @@ pnpm test:e2e
 ```
 
 The e2e test suite automatically:
+
 - Starts PostgreSQL via Docker
 - Creates the test user and session
 - Runs the full labeling workflow
@@ -223,18 +230,21 @@ The e2e test suite automatically:
 ### Troubleshooting Auth
 
 **Can't sign in locally**:
+
 - Check that your email is in the allowlist (`lib/auth.ts`)
 - Verify `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are correct
 - Ensure redirect URI matches: `http://localhost:3000/api/auth/callback/google`
 - Check browser console for errors
 
 **401 Unauthorized errors**:
+
 - Sign out and sign back in to refresh your session
 - Check that `NEXTAUTH_SECRET` is set
 - Verify your session hasn't expired (1 hour limit)
 - Clear cookies and try again
 
 **E2E tests failing**:
+
 - Ensure Docker PostgreSQL is running
 - Check that auth environment variables are set in `playwright.config.ts`
 - Run `pnpm test:e2e` to see detailed logs
@@ -335,64 +345,64 @@ seamless-interactions-label-studio/
 
 **User** - Stores user information from Google OAuth:
 
-| Field           | Type     | Description                          |
-| --------------- | -------- | ------------------------------------ |
-| `id`            | String   | Unique identifier (CUID)             |
-| `email`         | String   | User's email (unique)                |
-| `name`          | String   | User's display name                  |
-| `image`         | String   | User's profile picture URL           |
-| `emailVerified` | DateTime | Email verification timestamp         |
-| `createdAt`     | DateTime | Account creation timestamp           |
-| `updatedAt`     | DateTime | Last update timestamp                |
+| Field           | Type     | Description                  |
+| --------------- | -------- | ---------------------------- |
+| `id`            | String   | Unique identifier (CUID)     |
+| `email`         | String   | User's email (unique)        |
+| `name`          | String   | User's display name          |
+| `image`         | String   | User's profile picture URL   |
+| `emailVerified` | DateTime | Email verification timestamp |
+| `createdAt`     | DateTime | Account creation timestamp   |
+| `updatedAt`     | DateTime | Last update timestamp        |
 
 **Session** - Stores active user sessions:
 
-| Field          | Type     | Description                           |
-| -------------- | -------- | ------------------------------------- |
-| `id`           | String   | Unique identifier (CUID)              |
-| `sessionToken` | String   | Session token (unique)                |
-| `userId`       | String   | Foreign key to User                   |
-| `expires`      | DateTime | Session expiration time (1 hour max)  |
+| Field          | Type     | Description                          |
+| -------------- | -------- | ------------------------------------ |
+| `id`           | String   | Unique identifier (CUID)             |
+| `sessionToken` | String   | Session token (unique)               |
+| `userId`       | String   | Foreign key to User                  |
+| `expires`      | DateTime | Session expiration time (1 hour max) |
 
 **Account** - Stores OAuth account information (managed by NextAuth):
 
-| Field               | Type    | Description                        |
-| ------------------- | ------- | ---------------------------------- |
-| `id`                | String  | Unique identifier (CUID)           |
-| `userId`            | String  | Foreign key to User                |
-| `type`              | String  | Account type (oauth)               |
-| `provider`          | String  | OAuth provider (google)            |
-| `providerAccountId` | String  | Google account ID                  |
-| `access_token`      | String  | OAuth access token                 |
-| `refresh_token`     | String  | OAuth refresh token                |
-| `expires_at`        | Int     | Token expiration timestamp         |
-| `token_type`        | String  | Token type (Bearer)                |
-| `scope`             | String  | OAuth scopes granted               |
-| `id_token`          | String  | OpenID Connect ID token            |
+| Field               | Type   | Description                |
+| ------------------- | ------ | -------------------------- |
+| `id`                | String | Unique identifier (CUID)   |
+| `userId`            | String | Foreign key to User        |
+| `type`              | String | Account type (oauth)       |
+| `provider`          | String | OAuth provider (google)    |
+| `providerAccountId` | String | Google account ID          |
+| `access_token`      | String | OAuth access token         |
+| `refresh_token`     | String | OAuth refresh token        |
+| `expires_at`        | Int    | Token expiration timestamp |
+| `token_type`        | String | Token type (Bearer)        |
+| `scope`             | String | OAuth scopes granted       |
+| `id_token`          | String | OpenID Connect ID token    |
 
 ### Annotation Table
 
 **Annotation** - Stores video annotations (per user):
 
-| Field                | Type     | Description                                                       |
-| -------------------- | -------- | ----------------------------------------------------------------- |
-| `id`                 | String   | Unique identifier (CUID)                                          |
-| `userId`             | String   | Foreign key to User (who created this annotation)                 |
-| `videoId`            | String   | Video identifier (V{vendor}\_S{session}\_I{interaction})          |
-| `vendorId`           | Int      | Vendor ID from dataset                                            |
-| `sessionId`          | Int      | Session ID from dataset                                           |
-| `interactionId`      | Int      | Interaction ID from dataset                                       |
-| `speaker1Id`         | String   | Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A")     |
-| `speaker2Id`         | String   | Participant 2 ID                                                  |
-| `speaker1Label`      | String   | Morph label for speaker 1                                         |
-| `speaker2Label`      | String   | Morph label for speaker 2                                         |
-| `speaker1Confidence` | Int      | Confidence score for speaker 1 (1-5)                              |
-| `speaker2Confidence` | Int      | Confidence score for speaker 2 (1-5)                              |
-| `speaker1Comments`   | String   | Optional comments for speaker 1                                   |
-| `speaker2Comments`   | String   | Optional comments for speaker 2                                   |
-| `labelingTimeMs`     | Int      | Time spent labeling (milliseconds)                                |
-| `createdAt`          | DateTime | Creation timestamp                                                |
-| `updatedAt`          | DateTime | Last update timestamp                                             |
+| Field                | Type     | Description                                                   |
+| -------------------- | -------- | ------------------------------------------------------------- |
+| `id`                 | String   | Unique identifier (CUID)                                      |
+| `userId`             | String   | Foreign key to User (who created this annotation)             |
+| `videoId`            | String   | Video identifier (V{vendor}\_S{session}\_I{interaction})      |
+| `vendorId`           | Int      | Vendor ID from dataset                                        |
+| `sessionId`          | Int      | Session ID from dataset                                       |
+| `interactionId`      | Int      | Interaction ID from dataset                                   |
+| `speaker1Id`         | String   | Participant 1 ID (can be alphanumeric, e.g., "0799", "0299A") |
+| `speaker2Id`         | String   | Participant 2 ID                                              |
+| `speaker1Label`      | String   | Morph label for speaker 1                                     |
+| `speaker2Label`      | String   | Morph label for speaker 2                                     |
+| `speaker1Confidence` | Int      | Confidence score for speaker 1 (1-5)                          |
+| `speaker2Confidence` | Int      | Confidence score for speaker 2 (1-5)                          |
+| `speaker1Comments`   | String   | Optional comments for speaker 1                               |
+| `speaker2Comments`   | String   | Optional comments for speaker 2                               |
+| `labelingTimeMs`     | Int      | Time spent labeling (milliseconds)                            |
+| `createdAt`          | DateTime | Creation timestamp                                            |
+| `updatedAt`          | DateTime | Last update timestamp                                         |
 
 **Unique Constraint**: `[userId, videoId]` - Each user can have one annotation per video
 
