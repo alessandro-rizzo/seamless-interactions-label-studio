@@ -5,9 +5,15 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = request.nextUrl.pathname.startsWith("/auth/signin");
   const isApiAuthRoute = request.nextUrl.pathname.startsWith("/api/auth");
 
+  // Create response
+  const response = NextResponse.next();
+
+  // Add pathname to headers for use in layout
+  response.headers.set("x-pathname", request.nextUrl.pathname);
+
   // Allow access to sign-in page and auth API routes
   if (isAuthRoute || isApiAuthRoute) {
-    return NextResponse.next();
+    return response;
   }
 
   // Check for session cookie (set by NextAuth)
@@ -22,7 +28,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(signInUrl);
   }
 
-  return NextResponse.next();
+  return response;
 }
 
 export const config = {
