@@ -35,6 +35,8 @@ export const SynchronizedVideoPlayer = forwardRef<
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
+    const [video1Loading, setVideo1Loading] = useState(true);
+    const [video2Loading, setVideo2Loading] = useState(true);
     const hasPlayedRef = useRef(false);
 
     // Expose stop method to parent via ref
@@ -69,14 +71,24 @@ export const SynchronizedVideoPlayer = forwardRef<
         setDuration(Math.max(video1.duration, video2.duration));
       };
 
+      const handleVideo1LoadedMetadata = () => {
+        setVideo1Loading(false);
+        handleLoadedMetadata();
+      };
+
+      const handleVideo2LoadedMetadata = () => {
+        setVideo2Loading(false);
+        handleLoadedMetadata();
+      };
+
       video1.addEventListener("timeupdate", handleTimeUpdate);
-      video1.addEventListener("loadedmetadata", handleLoadedMetadata);
-      video2.addEventListener("loadedmetadata", handleLoadedMetadata);
+      video1.addEventListener("loadedmetadata", handleVideo1LoadedMetadata);
+      video2.addEventListener("loadedmetadata", handleVideo2LoadedMetadata);
 
       return () => {
         video1.removeEventListener("timeupdate", handleTimeUpdate);
-        video1.removeEventListener("loadedmetadata", handleLoadedMetadata);
-        video2.removeEventListener("loadedmetadata", handleLoadedMetadata);
+        video1.removeEventListener("loadedmetadata", handleVideo1LoadedMetadata);
+        video2.removeEventListener("loadedmetadata", handleVideo2LoadedMetadata);
       };
     }, []);
 
@@ -147,11 +159,21 @@ export const SynchronizedVideoPlayer = forwardRef<
           {/* Video 1 */}
           <div className="flex flex-col gap-1">
             <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
+              {video1Loading && (
+                <div className="absolute inset-0 flex items-center justify-center text-white z-10">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <p className="text-sm">Loading video...</p>
+                  </div>
+                </div>
+              )}
               <video
                 ref={video1Ref}
                 className="w-full h-full max-h-[68vh] object-contain"
+                preload="metadata"
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                onLoadStart={() => setVideo1Loading(true)}
               >
                 <source src={video1Src} type="video/mp4" />
               </video>
@@ -164,11 +186,21 @@ export const SynchronizedVideoPlayer = forwardRef<
           {/* Video 2 */}
           <div className="flex flex-col gap-1">
             <div className="relative bg-black rounded-lg overflow-hidden max-h-[68vh]">
+              {video2Loading && (
+                <div className="absolute inset-0 flex items-center justify-center text-white z-10">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    <p className="text-sm">Loading video...</p>
+                  </div>
+                </div>
+              )}
               <video
                 ref={video2Ref}
                 className="w-full h-full max-h-[68vh] object-contain"
+                preload="metadata"
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                onLoadStart={() => setVideo2Loading(true)}
               >
                 <source src={video2Src} type="video/mp4" />
               </video>

@@ -56,11 +56,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Prepare response headers
+    // Prepare response headers with aggressive caching
     const responseHeaders: HeadersInit = {
       "Content-Type": s3Response.headers.get("Content-Type") || "video/mp4",
       "Accept-Ranges": "bytes",
-      "Cache-Control": "public, max-age=3600", // Cache for 1 hour
+      // Cache for 24 hours, serve stale content for 7 days while revalidating
+      "Cache-Control":
+        "public, max-age=86400, stale-while-revalidate=604800, immutable",
     };
 
     // Copy important headers from S3 response
