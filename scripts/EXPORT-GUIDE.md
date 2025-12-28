@@ -60,6 +60,7 @@ pnpm export:csv:secure
 ### Decision Guide
 
 **Use Basic Export when:**
+
 - Creating internal backups
 - Migrating data between systems
 - Running quick analysis
@@ -67,6 +68,7 @@ pnpm export:csv:secure
 - Speed is critical
 
 **Use Secure Export when:**
+
 - Sharing with collaborators
 - Publishing research data
 - Protecting valuable IP
@@ -150,12 +152,14 @@ cm71...,V00_S0644_I00000129,0,...,alessandro.rizzo,alessandro.rizzo@example.com
 ### Pros & Cons
 
 **Pros:**
+
 - Simple and straightforward
 - Fast execution
 - Easy to verify visually
 - Legal deterrent (visible copyright)
 
 **Cons:**
+
 - Easy to remove (delete header lines)
 - No hidden markers
 - Limited proof of ownership
@@ -193,6 +197,7 @@ pnpm tsx scripts/export-annotations-secure.ts csv
 #### 1. Zero-Width Unicode Characters
 
 Invisible characters embedded directly in text fields:
+
 - Uses `U+200B`, `U+200C`, `U+200D`
 - Completely invisible to human readers
 - Survives copy/paste operations
@@ -203,6 +208,7 @@ Example: "Hello" might actually be "Hel\u200B\u200C\u200D\u200Blo"
 #### 2. Distributed Cryptographic Fingerprints
 
 SHA-256 hash generated from identity + export ID + timestamp:
+
 - Split into fragments across all records
 - Each record contains different fragment
 - Cryptographically secure (cannot be forged)
@@ -211,6 +217,7 @@ SHA-256 hash generated from identity + export ID + timestamp:
 #### 3. Hidden Metadata Fields
 
 Fields that appear to be legitimate system metadata:
+
 - `_recordHash`: Fingerprint fragment
 - `_syncId`: Encoded export ID
 - `_checksum`: Fingerprint prefix
@@ -219,6 +226,7 @@ Fields that appear to be legitimate system metadata:
 #### 4. Timing Variations
 
 Microsecond-level variations in `labelingTimeMs`:
+
 - 0.001-0.009 ms variation (imperceptible)
 - Based on export ID derivation
 - Creates unique signature
@@ -227,6 +235,7 @@ Microsecond-level variations in `labelingTimeMs`:
 #### 5. Verification File
 
 Separate `.verification-*.json` file containing:
+
 - Export ID
 - Complete cryptographic fingerprint
 - Hash fragments for verification
@@ -261,6 +270,7 @@ Separate `.verification-*.json` file containing:
 #### CSV Structure
 
 Headers include three watermark columns:
+
 - `Record Hash` - Fingerprint fragments
 - `Sync ID` - Encoded export ID
 - `Checksum` - Fingerprint prefix
@@ -278,15 +288,18 @@ exports/
 ### Security Benefits
 
 **Multi-layered Defense:**
+
 - Even if visible watermarks removed, invisible layers remain
 - Multiple independent markers must all be removed
 - Requires intimate knowledge of system to remove all
 
 **Plausible Deniability:**
+
 - Hidden fields look like legitimate database metadata
 - Most users won't question "system" fields
 
 **Cryptographically Secure:**
+
 - SHA-256 fingerprints cannot be forged
 - Each export has unique, verifiable signature
 - Mathematical proof of ownership
@@ -304,12 +317,14 @@ exports/
 ### Important Notes
 
 **DO:**
+
 - Keep `.verification-*.json` files secure and backed up
 - Store verification files separately from exports
 - Document export IDs for your records
 - Use secure export for all sensitive data
 
 **DON'T:**
+
 - Share verification files with recipients
 - Commit verification files to git (they're in `.gitignore`)
 - Delete verification files (you'll lose proof of ownership)
@@ -347,6 +362,7 @@ pnpm export:json
 ## Exported Data Fields
 
 ### Core Annotation Data
+
 - ID, Video ID, Vendor ID, Session ID, Interaction ID
 - Speaker IDs, Labels, Confidence levels
 - Comments (grounded theory memos)
@@ -356,6 +372,7 @@ pnpm export:json
 ### Category Annotations (22 fields)
 
 For each speaker (1 & 2):
+
 - Prosody
 - Lexical Choice
 - Turn Taking
@@ -371,6 +388,7 @@ For each speaker (1 & 2):
 **Note**: In CSV format, arrays are joined with "; " separator.
 
 ### User Information
+
 - **User Email**: Full email address of annotator
 - **Username**: Part before @ in email
 
@@ -396,15 +414,17 @@ If someone shares your data without permission:
 ```javascript
 // Check if string contains invisible watermark
 function hasInvisibleWatermark(text) {
-  return text.includes('\u200B') ||
-         text.includes('\u200C') ||
-         text.includes('\u200D');
+  return (
+    text.includes("\u200B") ||
+    text.includes("\u200C") ||
+    text.includes("\u200D")
+  );
 }
 
 // Verify fingerprint
 function verifyFingerprint(records, verificationFile) {
-  const fragments = records.map(r => r._recordHash);
-  const reconstructed = fragments.join('');
+  const fragments = records.map((r) => r._recordHash);
+  const reconstructed = fragments.join("");
   return reconstructed === verificationFile.fingerprint;
 }
 ```
@@ -440,6 +460,7 @@ Make sure you're using the secure export commands (`export:json:secure` or `expo
 ## Database Connection
 
 Scripts use your existing Prisma configuration:
+
 - Reads from `DATABASE_URL` in `.env`
 - Connects to same database as application
 - No additional configuration needed
@@ -447,6 +468,7 @@ Scripts use your existing Prisma configuration:
 ## Output Directory
 
 Files are saved to `exports/` directory with timestamped filenames:
+
 - `exports/annotations-export-1705315845123.json`
 - `exports/annotations-export-1705315845123.csv`
 
@@ -482,6 +504,7 @@ watermarked.labelingTimeMs = annotation.labelingTimeMs + variation / 10000;
 ## Legal Protection
 
 The combination of:
+
 1. Invisible Unicode watermarks (technical evidence)
 2. Cryptographic fingerprints (mathematical proof)
 3. Distributed markers (robust against tampering)
@@ -490,6 +513,7 @@ The combination of:
 ...provides **strong legal protection** for your intellectual property.
 
 In case of disputes, you can demonstrate:
+
 - **Possession**: You have the verification files
 - **Authentication**: Cryptographic fingerprints prove data origin
 - **Integrity**: Watermarks show data hasn't been altered
@@ -520,6 +544,7 @@ Both exports include copyright notice and licensing terms. The secure export pro
    - Invisible markers don't hurt
 
 4. **Test your watermarks**
+
    ```bash
    # Export a test file
    pnpm export:json:secure
@@ -542,11 +567,13 @@ Both exports include copyright notice and licensing terms. The secure export pro
 ### Zero-Width Encoding Algorithm
 
 Each character converted to 8-bit binary, then encoded using zero-width characters:
+
 - `1` → Zero-width joiner (`\u200D`)
 - `0` → Zero-width non-joiner (`\u200C`)
 - Characters separated by zero-width space (`\u200B`)
 
 Example: `"A"` (ASCII 65 = `01000001`) becomes:
+
 ```
 \u200C\u200D\u200C\u200C\u200C\u200C\u200C\u200D
 ```
@@ -572,6 +599,7 @@ Invisible watermarks inserted at position `⌊length × φ⌋` where φ = 0.618 
 ## Research References
 
 This implementation is based on research in:
+
 - Digital watermarking and steganography
 - Unicode-based text watermarking
 - Cryptographic fingerprinting
