@@ -20,8 +20,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   callbacks: {
     async signIn({ user }) {
-      // Allowlist of authorized email addresses
-      const allowedEmails = ["l.alessandrorizzo@gmail.com"];
+      // Allowlist of authorized email addresses from environment variable
+      // Format: comma-separated list (e.g., "email1@example.com,email2@example.com")
+      const allowedEmailsEnv = process.env.ALLOWED_EMAILS || "";
+      const allowedEmails = allowedEmailsEnv
+        .split(",")
+        .map((email) => email.trim())
+        .filter((email) => email.length > 0);
+
+      if (allowedEmails.length === 0) {
+        console.warn(
+          "ALLOWED_EMAILS environment variable is not set or empty. No users will be able to sign in.",
+        );
+        return false;
+      }
 
       return user.email ? allowedEmails.includes(user.email) : false;
     },
