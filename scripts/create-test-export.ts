@@ -24,7 +24,9 @@ const keepData = process.argv.includes("--keep-data");
 
 if (!format || !["json", "csv"].includes(format)) {
   console.error("❌ Please specify export format: json or csv");
-  console.error("Usage: pnpm tsx scripts/create-test-export.ts [json|csv] [--keep-data]");
+  console.error(
+    "Usage: pnpm tsx scripts/create-test-export.ts [json|csv] [--keep-data]",
+  );
   process.exit(1);
 }
 
@@ -105,11 +107,20 @@ const testAnnotations = [
     speaker2Label: "P2",
     speaker1Confidence: 5,
     speaker2Confidence: 4,
-    speaker1Comments: "Speaker shows clear engagement with frequent backchannels",
+    speaker1Comments:
+      "Speaker shows clear engagement with frequent backchannels",
     speaker2Comments: "More reserved, with longer response latencies",
     // Speaker 1 - High engagement, animated interaction
-    speaker1Prosody: ["high_pitch_variance", "rising_terminal", "volume_increase"],
-    speaker1LexicalChoice: ["certainty_terms", "self_references", "informal_register"],
+    speaker1Prosody: [
+      "high_pitch_variance",
+      "rising_terminal",
+      "volume_increase",
+    ],
+    speaker1LexicalChoice: [
+      "certainty_terms",
+      "self_references",
+      "informal_register",
+    ],
     speaker1TurnTaking: ["rapid_backchannels", "long_turns", "floor_holding"],
     speaker1Gaze: ["direct_gaze", "gaze_shift_frequency_high"],
     speaker1FacialExpression: ["smile", "brow_raise"],
@@ -118,18 +129,41 @@ const testAnnotations = [
       "illustrative_gesture",
       "gesture_synchrony_high",
     ],
-    speaker1Posture: ["forward_lean", "upright_posture", "body_orientation_direct"],
+    speaker1Posture: [
+      "forward_lean",
+      "upright_posture",
+      "body_orientation_direct",
+    ],
     speaker1AffectRegulation: ["affect_amplification"],
     speaker1InteractionalRole: ["initiative_taking", "topic_introduction"],
-    speaker1TimingLatency: ["response_latency_short", "latency_variability_low"],
+    speaker1TimingLatency: [
+      "response_latency_short",
+      "latency_variability_low",
+    ],
     speaker1RepairBehavior: ["self_correction", "rephrasing"],
     // Speaker 2 - More reserved, thoughtful responses
-    speaker2Prosody: ["low_pitch_variance", "falling_terminal", "speech_rate_slow"],
+    speaker2Prosody: [
+      "low_pitch_variance",
+      "falling_terminal",
+      "speech_rate_slow",
+    ],
     speaker2LexicalChoice: ["hedging_terms", "modal_verbs", "formal_register"],
-    speaker2TurnTaking: ["delayed_backchannels", "short_turns", "smooth_transition"],
-    speaker2Gaze: ["gaze_aversion", "downward_gaze", "gaze_shift_frequency_low"],
+    speaker2TurnTaking: [
+      "delayed_backchannels",
+      "short_turns",
+      "smooth_transition",
+    ],
+    speaker2Gaze: [
+      "gaze_aversion",
+      "downward_gaze",
+      "gaze_shift_frequency_low",
+    ],
     speaker2FacialExpression: ["neutral_face", "micro_smile"],
-    speaker2Gesture: ["restricted_gesture", "self_touch", "gesture_synchrony_low"],
+    speaker2Gesture: [
+      "restricted_gesture",
+      "self_touch",
+      "gesture_synchrony_low",
+    ],
     speaker2Posture: [
       "backward_lean",
       "collapsed_posture",
@@ -181,7 +215,10 @@ const testAnnotations = [
     speaker2Posture: ["forward_lean", "body_orientation_direct"],
     speaker2AffectRegulation: [],
     speaker2InteractionalRole: ["alignment_behavior", "topic_introduction"],
-    speaker2TimingLatency: ["response_latency_short", "latency_variability_low"],
+    speaker2TimingLatency: [
+      "response_latency_short",
+      "latency_variability_low",
+    ],
     speaker2RepairBehavior: ["self_correction"],
     labelingTimeMs: 89000,
     userId: null,
@@ -203,13 +240,21 @@ const testAnnotations = [
     speaker1Prosody: ["flat_intonation", "volume_decrease", "creaky_voice"],
     speaker1LexicalChoice: ["hedging_terms", "mitigators", "abstract_language"],
     speaker1TurnTaking: ["short_turns", "floor_yielding"],
-    speaker1Gaze: ["gaze_aversion", "downward_gaze", "gaze_shift_frequency_high"],
+    speaker1Gaze: [
+      "gaze_aversion",
+      "downward_gaze",
+      "gaze_shift_frequency_high",
+    ],
     speaker1FacialExpression: [
       "neutral_face",
       "lip_press",
       "asymmetrical_expression",
     ],
-    speaker1Gesture: ["restricted_gesture", "self_touch", "object_manipulation"],
+    speaker1Gesture: [
+      "restricted_gesture",
+      "self_touch",
+      "object_manipulation",
+    ],
     speaker1Posture: [
       "backward_lean",
       "collapsed_posture",
@@ -229,7 +274,11 @@ const testAnnotations = [
     speaker1RepairBehavior: ["filled_pause", "false_start", "unfilled_pause"],
     // Speaker 2 - More assertive, controlling
     speaker2Prosody: ["high_pitch_variance", "volume_increase"],
-    speaker2LexicalChoice: ["certainty_terms", "intensifiers", "self_references"],
+    speaker2LexicalChoice: [
+      "certainty_terms",
+      "intensifiers",
+      "self_references",
+    ],
     speaker2TurnTaking: [
       "interruptions",
       "long_turns",
@@ -278,7 +327,11 @@ const testAnnotations = [
     speaker1RepairBehavior: ["self_correction", "clarification_request"],
     // Speaker 2 - Also task-focused
     speaker2Prosody: ["flat_intonation"],
-    speaker2LexicalChoice: ["concrete_language", "formal_register", "modal_verbs"],
+    speaker2LexicalChoice: [
+      "concrete_language",
+      "formal_register",
+      "modal_verbs",
+    ],
     speaker2TurnTaking: ["smooth_transition", "short_turns"],
     speaker2Gaze: ["gaze_aversion", "side_glance"],
     speaker2FacialExpression: ["neutral_face", "micro_smile"],
@@ -286,7 +339,10 @@ const testAnnotations = [
     speaker2Posture: ["upright_posture", "postural_shift_frequency_low"],
     speaker2AffectRegulation: [],
     speaker2InteractionalRole: ["responsive_following", "alignment_behavior"],
-    speaker2TimingLatency: ["response_latency_short", "latency_variability_low"],
+    speaker2TimingLatency: [
+      "response_latency_short",
+      "latency_variability_low",
+    ],
     speaker2RepairBehavior: ["unfilled_pause", "clarification_request"],
     labelingTimeMs: 112000,
     userId: null,
@@ -302,7 +358,8 @@ const testAnnotations = [
     speaker2Label: "P2",
     speaker1Confidence: 5,
     speaker2Confidence: 3,
-    speaker1Comments: "Animated storytelling with expressive multimodal signals",
+    speaker1Comments:
+      "Animated storytelling with expressive multimodal signals",
     speaker2Comments: "Active listening with frequent backchannels",
     // Speaker 1 - Animated storyteller
     speaker1Prosody: [
@@ -311,7 +368,11 @@ const testAnnotations = [
       "elongated_vowels",
       "volume_increase",
     ],
-    speaker1LexicalChoice: ["intensifiers", "concrete_language", "informal_register"],
+    speaker1LexicalChoice: [
+      "intensifiers",
+      "concrete_language",
+      "informal_register",
+    ],
     speaker1TurnTaking: ["long_turns", "floor_holding"],
     speaker1Gaze: ["direct_gaze", "gaze_shift_frequency_high"],
     speaker1FacialExpression: ["smile", "brow_raise", "brow_furrow"],
@@ -393,7 +454,7 @@ async function createTestData() {
   }
 
   console.log(
-    `✅ Created ${createdAnnotations.length} test annotations for ${testVideos.length} videos`
+    `✅ Created ${createdAnnotations.length} test annotations for ${testVideos.length} videos`,
   );
   return { userId: user.id, annotationIds: createdAnnotations };
 }
@@ -610,11 +671,11 @@ async function main() {
     if (!keepData) {
       await cleanupTestData();
       console.log(
-        "\n💡 Test data has been removed. Use --keep-data flag to keep it."
+        "\n💡 Test data has been removed. Use --keep-data flag to keep it.",
       );
     } else {
       console.log(
-        "\n💡 Test data kept in database. Delete manually if needed."
+        "\n💡 Test data kept in database. Delete manually if needed.",
       );
     }
 
