@@ -8,22 +8,36 @@ export function MobileWarning() {
 
   useEffect(() => {
     const checkMobile = () => {
-      // Check user agent for mobile devices
       const userAgent =
         navigator.userAgent || navigator.vendor || (window as any).opera;
-      const mobileRegex =
-        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
-      const isMobileUA = mobileRegex.test(userAgent.toLowerCase());
+      const userAgentLower = userAgent.toLowerCase();
 
-      // Check screen width (mobile if less than 768px)
+      // Check if it's a tablet (iPad or Android tablet)
+      const isTablet =
+        /ipad|android(?!.*mobile)|tablet/i.test(userAgentLower) ||
+        (navigator.maxTouchPoints > 1 && window.innerWidth >= 768);
+
+      // If it's a tablet, don't show the warning
+      if (isTablet) {
+        setIsMobile(false);
+        return;
+      }
+
+      // Check for phone-specific user agents (excluding tablets)
+      const isPhone =
+        /iphone|ipod|android.*mobile|webos|blackberry|iemobile|opera mini|mobile/i.test(
+          userAgentLower,
+        );
+
+      // Check screen width (phone if less than 768px)
       const isSmallScreen = window.innerWidth < 768;
 
       // Check if touch device
       const isTouchDevice =
         "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
-      // Consider it mobile if it matches user agent OR (is small screen AND touch device)
-      setIsMobile(isMobileUA || (isSmallScreen && isTouchDevice));
+      // Consider it a phone if it matches phone user agent OR (is small screen AND touch device)
+      setIsMobile(isPhone || (isSmallScreen && isTouchDevice));
     };
 
     checkMobile();
@@ -50,11 +64,11 @@ export function MobileWarning() {
 
         <div className="space-y-3">
           <h1 className="text-3xl font-bold text-foreground">
-            Desktop Required
+            Phone Not Supported
           </h1>
           <p className="text-lg text-muted-foreground">
-            This annotation tool requires a desktop or laptop computer for the
-            best experience.
+            This annotation tool requires a larger screen for the best
+            experience.
           </p>
         </div>
 
@@ -67,9 +81,13 @@ export function MobileWarning() {
             </li>
             <li className="flex items-start gap-2">
               <span className="text-primary mt-0.5">•</span>
+              <span>A tablet (iPad, Android tablet)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-primary mt-0.5">•</span>
               <span>
                 Or enable <strong className="text-foreground">Desktop Mode</strong> in your
-                mobile browser settings
+                browser settings
               </span>
             </li>
           </ul>
