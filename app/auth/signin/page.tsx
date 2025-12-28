@@ -30,7 +30,7 @@ export default function SignInPage() {
         </div>
 
         {/* Sign In Card */}
-        <div className="max-w-md w-full mx-auto p-8 border rounded-lg bg-card">
+        <div className="max-w-md w-full mx-auto p-8 rounded-lg bg-card">
           <form
             action={async () => {
               "use server";
