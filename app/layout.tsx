@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { UserMenu } from "@/components/user-menu";
+import { MobileWarning } from "@/components/mobile-warning";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,6 +23,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
+        <MobileWarning />
         <div className="h-screen flex flex-col bg-background text-foreground">
           <header className="border-b bg-card flex-shrink-0">
             <div className="container mx-auto px-4 py-4 flex items-center justify-between">
