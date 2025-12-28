@@ -224,8 +224,8 @@ async function fetchAnnotations(): Promise<ExportAnnotation[]> {
     speaker2Label: annotation.speaker2Label,
     speaker1Confidence: annotation.speaker1Confidence,
     speaker2Confidence: annotation.speaker2Confidence,
-    speaker1Comments: annotation.speaker1Comments,
-    speaker2Comments: annotation.speaker2Comments,
+    speaker1Comments: annotation.speaker1Comments ?? "",
+    speaker2Comments: annotation.speaker2Comments ?? "",
     speaker1Prosody: annotation.speaker1Prosody,
     speaker1LexicalChoice: annotation.speaker1LexicalChoice,
     speaker1TurnTaking: annotation.speaker1TurnTaking,
@@ -519,9 +519,7 @@ async function main() {
     console.log("\n✅ Secure export complete!");
     console.log(`📦 File saved to: ${filepath}`);
     console.log(`📊 Total records: ${annotations.length}`);
-    console.log(
-      "\n🔐 WATERMARK LAYERS APPLIED:",
-    );
+    console.log("\n🔐 WATERMARK LAYERS APPLIED:");
     console.log("   • Zero-width Unicode characters (invisible)");
     console.log("   • Distributed cryptographic fingerprints");
     console.log("   • Hidden metadata fields");

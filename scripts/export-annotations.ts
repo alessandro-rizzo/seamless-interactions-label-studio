@@ -111,8 +111,8 @@ async function fetchAnnotations(): Promise<ExportAnnotation[]> {
     speaker2Label: annotation.speaker2Label,
     speaker1Confidence: annotation.speaker1Confidence,
     speaker2Confidence: annotation.speaker2Confidence,
-    speaker1Comments: annotation.speaker1Comments,
-    speaker2Comments: annotation.speaker2Comments,
+    speaker1Comments: annotation.speaker1Comments ?? "",
+    speaker2Comments: annotation.speaker2Comments ?? "",
     speaker1Prosody: annotation.speaker1Prosody,
     speaker1LexicalChoice: annotation.speaker1LexicalChoice,
     speaker1TurnTaking: annotation.speaker1TurnTaking,
@@ -315,7 +315,9 @@ async function main() {
   const format = process.argv[2]?.toLowerCase();
 
   if (!format || !["json", "csv"].includes(format)) {
-    console.error("❌ Usage: pnpm tsx scripts/export-annotations.ts [json|csv]");
+    console.error(
+      "❌ Usage: pnpm tsx scripts/export-annotations.ts [json|csv]",
+    );
     process.exit(1);
   }
 
