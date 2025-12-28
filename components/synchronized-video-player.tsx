@@ -87,8 +87,14 @@ export const SynchronizedVideoPlayer = forwardRef<
 
       return () => {
         video1.removeEventListener("timeupdate", handleTimeUpdate);
-        video1.removeEventListener("loadedmetadata", handleVideo1LoadedMetadata);
-        video2.removeEventListener("loadedmetadata", handleVideo2LoadedMetadata);
+        video1.removeEventListener(
+          "loadedmetadata",
+          handleVideo1LoadedMetadata,
+        );
+        video2.removeEventListener(
+          "loadedmetadata",
+          handleVideo2LoadedMetadata,
+        );
       };
     }, []);
 

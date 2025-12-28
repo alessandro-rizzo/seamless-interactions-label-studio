@@ -43,13 +43,22 @@ describe("SignInPage", () => {
     expect(form).toBeInTheDocument();
   });
 
-  it("should not render any heading or description text", () => {
+  it("should render heading and description text", () => {
     render(<SignInPage />);
 
-    // Verify no heading
-    expect(screen.queryByRole("heading")).not.toBeInTheDocument();
+    // Verify heading is present
+    const heading = screen.getByRole("heading", {
+      name: /seamless interactions label studio/i,
+    });
+    expect(heading).toBeInTheDocument();
 
-    // Verify minimal content - only the button
+    // Verify description is present
+    const description = screen.getByText(
+      /annotate multimodal dyadic interactions/i,
+    );
+    expect(description).toBeInTheDocument();
+
+    // Verify button is also present
     const button = screen.getByRole("button", {
       name: /sign in with google/i,
     });

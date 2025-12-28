@@ -86,8 +86,9 @@ export function MobileWarning() {
             <li className="flex items-start gap-2">
               <span className="text-primary mt-0.5">•</span>
               <span>
-                Or enable <strong className="text-foreground">Desktop Mode</strong> in your
-                browser settings
+                Or enable{" "}
+                <strong className="text-foreground">Desktop Mode</strong> in
+                your browser settings
               </span>
             </li>
           </ul>

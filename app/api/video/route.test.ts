@@ -65,7 +65,7 @@ describe("/api/video", () => {
           expect(response.headers.get("Content-Type")).toBe("video/mp4");
           expect(response.headers.get("Accept-Ranges")).toBe("bytes");
           expect(response.headers.get("Cache-Control")).toBe(
-            "public, max-age=3600",
+            "public, max-age=86400, stale-while-revalidate=604800, immutable",
           );
 
           // Verify S3 URL was constructed correctly
