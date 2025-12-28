@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import Link from "next/link";
+import { Home } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { UserMenu } from "@/components/user-menu";
 import { MobileWarning } from "@/components/mobile-warning";
@@ -35,7 +36,18 @@ export default async function RootLayout({
                   Seamless Interactions Label Studio
                 </h1>
               </Link>
-              {session?.user && <UserMenu user={session.user} />}
+              {session?.user && (
+                <div className="flex items-center gap-3">
+                  <UserMenu user={session.user} />
+                  <Link
+                    href="/"
+                    className="flex items-center justify-center w-10 h-10 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary transition-colors"
+                    title="Back to video list"
+                  >
+                    <Home size={18} />
+                  </Link>
+                </div>
+              )}
             </div>
           </header>
           <main className="flex-1 overflow-hidden">{children}</main>
