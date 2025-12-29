@@ -14,9 +14,12 @@ A professional web-based annotation tool for labeling speaker morphs in the [Sea
 - 🏷️ **Binary Labeling** - Label each speaker as Morph A or Morph B
 - 🎯 **Per-Speaker Confidence** - Individual confidence scoring for each speaker (1-5 scale)
 - 💬 **Per-Speaker Comments** - Add individual observations and notes for each speaker
+- 🔄 **Session-Wide Extrapolation** - Apply morph labels to all unlabeled videos in the same session
+- 🏷️ **Annotation Type Tracking** - Distinguish between manual (watched) and extrapolated (inferred) annotations
+- 🔍 **Badge Indicators** - Visual badges showing manual (green) vs extrapolated (blue) annotations
 - 🧹 **Clear Annotations** - Delete annotation records with confirmation
 - 📈 **Live Statistics** - View morph distribution and completion metrics at the top of the page
-- 🔍 **Advanced Filtering** - Filter by annotation status, interaction type, and search by video ID
+- 🔍 **Advanced Filtering** - Filter by annotation status, annotation type, interaction type, and search by video ID
 - 🔄 **Flexible Sorting** - Sort by video ID or labeling date (newest first)
 - 📄 **Pagination** - Navigate through videos with page controls
 - 💾 **Persistent Storage** - PostgreSQL database for reliable persistence
@@ -259,16 +262,38 @@ The e2e test suite automatically:
    - Scrollable video list below with pagination
 2. **Filter & Sort Videos** - Use the filter controls (all on one line) to find specific videos:
    - **Search** - Type to filter by video ID
-   - **Annotation Status** - Filter by all/annotated/not annotated
-   - **Interaction Type** - Filter by all/improvised/naturalistic
-   - **Sort** - Sort by video ID or labeling date (newest first)
+   - **Status** - Filter by all/annotated/not annotated
+   - **Type** - Filter by annotation type (all/manual/extrapolated)
+   - **Interaction** - Filter by interaction type (all/improvised/naturalistic)
+   - **Sort** - Sort by video ID or labeling date
 3. **Select Video** - Click "Label →" to start annotating or "Edit →" to modify existing annotations
 4. **Watch & Analyze** - Both participant videos play in perfect sync with shared playback controls
 5. **Label Speakers** - Select Morph A or Morph B for each participant
 6. **Set Confidence** - Use individual sliders for each speaker's confidence (1=low, 5=high)
 7. **Add Comments** - Include per-speaker observations and notes (optional)
-8. **Save** - Click "Save Annotation" to save and return to home page (video stops automatically)
-9. **Clear Annotation** - Use "Clear Annotation" button to delete the record (requires confirmation)
+8. **Session Extrapolation (Optional)** - Check "Apply to entire session" to automatically apply morph labels to all unlabeled videos in the same session
+9. **Save** - Click "Save Annotation" to save and return to home page (video stops automatically)
+10. **Clear Annotation** - Use "Clear Annotation" button to delete the record (requires confirmation)
+
+### Session-Wide Extrapolation
+
+The system supports **session-wide extrapolation** for efficient bulk labeling:
+
+**How It Works**:
+- Videos in the dataset are grouped by session (Vendor ID + Session ID)
+- When you manually annotate one video and check "Apply to entire session", the system automatically creates extrapolated annotations for all other unlabeled videos in that session
+- Morph labels and confidence scores are mapped by **speaker ID** (not position), ensuring correct label assignment even when speakers appear in different positions across videos
+
+**Annotation Types**:
+- **Manual** (Green badge): You watched the video and labeled it yourself (has timing data)
+- **Extrapolated** (Blue badge): System inferred labels from another video in the same session (no timing data or behavioral signals)
+
+**Key Features**:
+- Only applies to unlabeled videos (won't overwrite existing annotations)
+- Preserves morph labels and confidence scores
+- Omits comments and behavioral signals (these must be added manually)
+- Converts to manual annotation if you re-annotate an extrapolated video
+- Filter by annotation type to review only manual or extrapolated annotations
 
 ### Dashboard Stats
 
@@ -400,11 +425,14 @@ seamless-interactions-label-studio/
 | `speaker2Confidence` | Int      | Confidence score for speaker 2 (1-5)                          |
 | `speaker1Comments`   | String   | Optional comments for speaker 1                               |
 | `speaker2Comments`   | String   | Optional comments for speaker 2                               |
-| `labelingTimeMs`     | Int      | Time spent labeling (milliseconds)                            |
+| `annotationType`     | String   | Type of annotation: "manual" or "extrapolated"                |
+| `labelingTimeMs`     | Int      | Time spent labeling (milliseconds, 0 for extrapolated)        |
 | `createdAt`          | DateTime | Creation timestamp                                            |
 | `updatedAt`          | DateTime | Last update timestamp                                         |
 
 **Unique Constraint**: `[userId, videoId]` - Each user can have one annotation per video
+
+**Indexes**: `annotationType` - Enables efficient filtering by annotation type
 
 ## Development
 
@@ -500,7 +528,10 @@ pnpm start
 
 - Creates or updates an annotation for the authenticated user (upsert by `userId` + `videoId`)
 - **Auth**: Required - automatically associates with authenticated user
-- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, labelingTimeMs }`
+- Body: `{ videoId, vendorId, sessionId, interactionId, speaker1Id, speaker2Id, speaker1Label, speaker2Label, speaker1Confidence, speaker2Confidence, speaker1Comments, speaker2Comments, speaker1Categories, speaker2Categories, labelingTimeMs, extrapolateToSession }`
+- **Annotation Type Logic**: Automatically set based on `labelingTimeMs` (>0 = "manual", 0 = "extrapolated")
+- **Session Extrapolation**: If `extrapolateToSession: true` and annotation is manual, automatically creates extrapolated annotations for all unlabeled videos in the same session (matching vendorId + sessionId)
+- **Speaker ID Mapping**: Extrapolation maps morph labels by speaker ID (not position), ensuring correct assignment when speakers appear in different positions
 
 **DELETE /api/annotations?videoId={videoId}**
 
@@ -523,14 +554,16 @@ pnpm start
   - `limit` - Items per page (default: 20)
   - `search` - Filter by video ID
   - `annotatedFilter` - Filter by annotation status (all/annotated/not-annotated)
+  - `annotationTypeFilter` - Filter by annotation type (all/manual/extrapolated)
   - `labelFilter` - Filter by interaction type (all/improvised/naturalistic)
   - `sortBy` - Sort order (videoId/annotatedAt)
 - Returns:
   - `interactions` - Array of video metadata
   - `annotatedVideoIds` - Array of video IDs annotated by the user
+  - `annotationTypes` - Object mapping video IDs to annotation types ("manual" or "extrapolated")
   - `total` - Total matching videos
   - `page`, `limit`, `totalPages` - Pagination info
-  - `filterCounts` - Counts for each filter option (per-user)
+  - `filterCounts` - Counts for each filter option including `manual` and `extrapolated` (per-user)
   - `stats` - Morph distribution statistics (per-user)
 
 ### Download API

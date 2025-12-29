@@ -49,7 +49,8 @@ Custom Next.js application with:
 4. **Confidence Rating**: Rates confidence in morph assignment (1-5 scale)
 5. **Behavioral Coding**: Selects observed signals from 11 facets (multi-select per facet)
 6. **Qualitative Notes**: Adds grounded theory memos with contextual observations
-7. **Submission**: Saves annotation with automatic timestamping and user tracking
+7. **Session Extrapolation** (Optional): Applies morph labels to all unlabeled videos in the same session
+8. **Submission**: Saves annotation with automatic timestamping and user tracking
 
 **Data Integrity Features**:
 
@@ -57,6 +58,29 @@ Custom Next.js application with:
 - Automatic timing tracking (milliseconds spent labeling)
 - Edit/delete capabilities for annotation revision
 - User-specific annotation history
+- Annotation type tracking (manual vs. extrapolated)
+
+### 2.3 Annotation Types
+
+The system distinguishes between two types of annotations:
+
+**Manual Annotations**:
+- Annotator watched the video and labeled it directly
+- Contains timing data (`labelingTimeMs > 0`)
+- Can include behavioral signals and qualitative memos
+- Marked with green badge in UI
+
+**Extrapolated Annotations**:
+- System inferred labels from another video in the same session
+- No timing data (`labelingTimeMs = 0`)
+- Contains only morph labels and confidence scores (no behavioral signals or comments)
+- Marked with blue badge in UI
+- Created via session-wide extrapolation feature
+
+**Annotation Type Logic**:
+- Type is automatically determined by `labelingTimeMs` field
+- Manual annotation of an extrapolated video converts it to manual type
+- Speaker ID mapping ensures correct label assignment when speakers appear in different positions across videos
 
 ---
 
@@ -310,13 +334,14 @@ For each speaker (1 and 2) and each facet:
 
 #### **Metadata Fields**
 
-| Field            | Type    | Description                             |
-| ---------------- | ------- | --------------------------------------- |
-| `labelingTimeMs` | integer | Time spent on annotation (milliseconds) |
-| `createdAt`      | ISO8601 | Timestamp of annotation creation        |
-| `updatedAt`      | ISO8601 | Timestamp of last modification          |
-| `userEmail`      | string  | Annotator email address                 |
-| `username`       | string  | Annotator username (part before @)      |
+| Field            | Type    | Description                                                   |
+| ---------------- | ------- | ------------------------------------------------------------- |
+| `annotationType` | string  | Type of annotation: "manual" or "extrapolated"                |
+| `labelingTimeMs` | integer | Time spent on annotation (milliseconds, 0 for extrapolated)   |
+| `createdAt`      | ISO8601 | Timestamp of annotation creation                              |
+| `updatedAt`      | ISO8601 | Timestamp of last modification                                |
+| `userEmail`      | string  | Annotator email address                                       |
+| `username`       | string  | Annotator username (part before @)                            |
 
 ### 4.3 Example Data Record (JSON)
 
@@ -357,6 +382,7 @@ For each speaker (1 and 2) and each facet:
   "speaker2InteractionalRole": ["active_listening", "submissive_positioning"],
   "speaker2TimingLatency": ["slow_response"],
   "speaker2RepairBehavior": ["self_repair", "word_search"],
+  "annotationType": "manual",
   "labelingTimeMs": 127543,
   "createdAt": "2025-01-15T10:30:45.123Z",
   "updatedAt": "2025-01-15T10:32:52.666Z",
@@ -365,9 +391,129 @@ For each speaker (1 and 2) and each facet:
 }
 ```
 
-## 5. Linking to Seamless Interaction Dataset
+### 4.4 Example Extrapolated Annotation (JSON)
 
-### 5.1 Video ID Mapping
+An extrapolated annotation has the same structure but with key differences:
+
+```json
+{
+  "id": "cm71g8h0k00032jtzaxn9y2xd",
+  "videoId": "V00_S0644_I00000131",
+  "vendorId": 0,
+  "sessionId": 644,
+  "interactionId": 131,
+  "speaker1Id": "P0799",
+  "speaker2Id": "P0800",
+  "speaker1Label": "Morph A",
+  "speaker2Label": "Morph B",
+  "speaker1Confidence": 4,
+  "speaker2Confidence": 5,
+  "speaker1Comments": "",
+  "speaker2Comments": "",
+  "speaker1Prosody": [],
+  "speaker1LexicalChoice": [],
+  "speaker1TurnTaking": [],
+  "speaker1Gaze": [],
+  "speaker1FacialExpression": [],
+  "speaker1Gesture": [],
+  "speaker1Posture": [],
+  "speaker1AffectRegulation": [],
+  "speaker1InteractionalRole": [],
+  "speaker1TimingLatency": [],
+  "speaker1RepairBehavior": [],
+  "speaker2Prosody": [],
+  "speaker2LexicalChoice": [],
+  "speaker2TurnTaking": [],
+  "speaker2Gaze": [],
+  "speaker2FacialExpression": [],
+  "speaker2Gesture": [],
+  "speaker2Posture": [],
+  "speaker2AffectRegulation": [],
+  "speaker2InteractionalRole": [],
+  "speaker2TimingLatency": [],
+  "speaker2RepairBehavior": [],
+  "annotationType": "extrapolated",
+  "labelingTimeMs": 0,
+  "createdAt": "2025-01-15T10:32:52.888Z",
+  "updatedAt": "2025-01-15T10:32:52.888Z",
+  "userEmail": "annotator@example.com",
+  "username": "annotator"
+}
+```
+
+**Key Differences**:
+- `annotationType`: "extrapolated"
+- `labelingTimeMs`: 0 (no direct observation)
+- All behavioral signal arrays are empty
+- Comments are empty strings
+- Only morph labels and confidence scores are preserved
+
+---
+
+## 5. Session-Wide Extrapolation
+
+### 5.1 Rationale
+
+In the Seamless Interaction Dataset, videos are grouped into **sessions** where the same two participants engage in multiple interactions. Within a session, speakers typically maintain consistent behavioral patterns and morphological characteristics. Session-wide extrapolation leverages this structure to accelerate bulk labeling while maintaining data quality.
+
+**Use Cases**:
+- Rapid initial labeling of large datasets
+- Preliminary classification for subsequent detailed coding
+- Identifying sessions requiring full manual review
+- Bootstrapping training datasets for machine learning models
+
+### 5.2 Extrapolation Mechanism
+
+**Session Definition**: Videos share a session when they have identical `vendorId` and `sessionId` values.
+
+**Process**:
+1. Annotator manually labels one video in a session (creates manual annotation)
+2. Optionally checks "Apply to entire session" before saving
+3. System identifies all other unlabeled videos in the same session
+4. Creates extrapolated annotations with:
+   - **Preserved**: Morph labels, confidence scores
+   - **Omitted**: Comments, behavioral signals, timing data
+   - **Type**: Marked as "extrapolated"
+
+**Speaker ID Mapping**:
+- Critical implementation: Morph labels are mapped by **speaker ID**, not video position
+- Ensures correct assignment when speakers appear in different positions (participant1 vs participant2) across videos
+- Example: If Speaker P0799 is labeled "Morph A" in Video 1 (position 1), they receive "Morph A" in Video 2 even if appearing in position 2
+
+### 5.3 Data Quality Considerations
+
+**Advantages**:
+- Efficient bulk labeling for large sessions
+- Preserves primary classification across related interactions
+- Reduces annotator fatigue for repetitive sessions
+- Enables rapid dataset preparation
+
+**Limitations**:
+- Assumes behavioral consistency within sessions (may not hold for all contexts)
+- Loses timing and observational detail
+- Does not capture interaction-specific behavioral signals
+- May propagate errors across session if initial annotation is incorrect
+
+**Best Practices**:
+1. Use extrapolation for preliminary classification only
+2. Manually review extrapolated annotations for critical analyses
+3. Filter by `annotationType` to separate manual from extrapolated data in statistical analyses
+4. Re-annotate extrapolated videos when fine-grained behavioral coding is required
+
+### 5.4 Converting Extrapolated to Manual Annotations
+
+Extrapolated annotations automatically convert to manual type when:
+- User opens the video and re-saves the annotation
+- New `labelingTimeMs > 0` is recorded
+- Behavioral signals or comments are added
+
+This allows iterative refinement where researchers first extrapolate across sessions, then selectively upgrade key videos to full manual annotations.
+
+---
+
+## 6. Linking to Seamless Interaction Dataset
+
+### 6.1 Video ID Mapping
 
 Each annotation includes a `videoId` field that directly maps to the Seamless Interaction Dataset file naming convention:
 
@@ -380,7 +526,7 @@ Each annotation includes a `videoId` field that directly maps to the Seamless In
   - Speaker 1: `V00_S0644_I00000129_P0799.mp4` (from `speaker1Id`)
   - Speaker 2: `V00_S0644_I00000129_P0800.mp4` (from `speaker2Id`)
 
-### 5.2 Retrieving Original Media
+### 6.2 Retrieving Original Media
 
 To access source videos and multimodal features:
 
@@ -402,7 +548,7 @@ fs.gather_file_id_data_from_s3(file_id_1)  # Downloads .mp4, .wav, .json, .npz
 fs.gather_file_id_data_from_s3(file_id_2)
 ```
 
-### 5.3 Available Multimodal Features
+### 6.3 Available Multimodal Features
 
 For each annotated interaction, the Seamless dataset provides:
 
@@ -435,9 +581,9 @@ For each annotated interaction, the Seamless dataset provides:
 
 ---
 
-## 6. Methodological Considerations
+## 7. Methodological Considerations
 
-### 6.1 Ecological Validity
+### 7.1 Ecological Validity
 
 **Strengths**:
 
@@ -452,7 +598,7 @@ For each annotated interaction, the Seamless dataset provides:
 - Prompted interactions (not fully spontaneous)
 - Limited to dyadic format (no group interactions)
 
-### 6.2 Annotation Framework
+### 7.2 Annotation Framework
 
 **Theoretical Grounding**:
 
@@ -476,13 +622,13 @@ For each annotated interaction, the Seamless dataset provides:
 
 ---
 
-## 7. Contact and Support
+## 8. Contact and Support
 
 **Primary Contact**: Alessandro Rizzo
 **Dataset Source**: [Seamless Interaction Dataset](https://ai.meta.com/research/seamless-interaction/)
 **Reference Paper**: _Seamless Interaction: Dyadic Audiovisual Motion Modeling and Large-Scale Dataset_ (Meta AI Research, 2024)
 
-### 7.1 Recommended Citation
+### 8.1 Recommended Citation
 
 If using this annotated data in publications:
 
@@ -502,7 +648,7 @@ If using this annotated data in publications:
 }
 ```
 
-### 7.2 Data Sharing Agreement
+### 8.2 Data Sharing Agreement
 
 All exports include embedded watermarks for intellectual property protection. Unauthorized distribution, modification, or use beyond agreed scope is prohibited. Each export includes a unique tracking identifier for data provenance.
 
