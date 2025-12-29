@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   SynchronizedVideoPlayer,
@@ -84,6 +84,11 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
   );
   const [isDeleting, setIsDeleting] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [labelingTimeSeconds, setLabelingTimeSeconds] = useState<number | null>(
+    existingAnnotation
+      ? Math.round(existingAnnotation.labelingTimeMs / 1000)
+      : null,
+  );
 
   // Track first video play
   const handleFirstPlay = () => {
@@ -100,6 +105,20 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
         lastMorphSelectionTimeRef.current = Date.now();
       }
     };
+
+  // Update labeling time display when both labels are set
+  useEffect(() => {
+    if (
+      speaker1Label &&
+      speaker2Label &&
+      firstPlayTimeRef.current !== null &&
+      lastMorphSelectionTimeRef.current !== null
+    ) {
+      const timeMs =
+        lastMorphSelectionTimeRef.current - firstPlayTimeRef.current;
+      setLabelingTimeSeconds(Math.round(timeMs / 1000));
+    }
+  }, [speaker1Label, speaker2Label]);
 
   // Handle category changes
   const handleSpeaker1CategoryChange =
@@ -284,6 +303,11 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
                 },
               ]}
             />
+            {labelingTimeSeconds !== null && (
+              <span className="text-sm text-muted-foreground ml-2">
+                Labeling time: {labelingTimeSeconds}s
+              </span>
+            )}
           </div>
 
           {/* Labels and Confidence */}
