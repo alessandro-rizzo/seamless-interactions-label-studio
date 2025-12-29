@@ -14,6 +14,7 @@ jest.mock("@/lib/db", () => ({
     },
     annotation: {
       findMany: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
@@ -97,6 +98,7 @@ describe("/api/videos - Auth", () => {
       (mockPrisma.video.count as jest.Mock).mockResolvedValue(1);
       (mockPrisma.video.findMany as jest.Mock).mockResolvedValue(mockVideos);
       (mockPrisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+      (mockPrisma.annotation.count as jest.Mock).mockResolvedValue(0);
 
       await testApiHandler({
         appHandler,
@@ -140,6 +142,7 @@ describe("/api/videos - Auth", () => {
       (mockPrisma.annotation.findMany as jest.Mock).mockResolvedValue(
         mockAnnotations,
       );
+      (mockPrisma.annotation.count as jest.Mock).mockResolvedValue(1);
 
       await testApiHandler({
         appHandler,

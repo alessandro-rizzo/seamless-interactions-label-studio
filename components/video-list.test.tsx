@@ -52,6 +52,9 @@ const mockApiResponse = {
     },
   ],
   annotatedVideoIds: ["V00_S0001_I00000001"],
+  annotationTypes: {
+    V00_S0001_I00000001: "manual",
+  },
   total: 2,
   page: 1,
   limit: 20,
@@ -62,6 +65,8 @@ const mockApiResponse = {
     notAnnotated: 50,
     improvised: 60,
     naturalistic: 40,
+    manual: 30,
+    extrapolated: 20,
   },
   stats: {
     uniqueSpeakers: 25,
@@ -206,7 +211,8 @@ describe("VideoList", () => {
       expect(screen.getByText("V00_S0001_I00000001")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("All Status (100)")).toBeInTheDocument();
+    // Check that "All" options exist (there are multiple dropdowns with "All")
+    expect(screen.getAllByText("All (100)").length).toBeGreaterThan(0);
     expect(screen.getByText("Annotated (50)")).toBeInTheDocument();
     expect(screen.getByText("Not Annotated (50)")).toBeInTheDocument();
     expect(screen.getByText("Improvised (60)")).toBeInTheDocument();
@@ -484,7 +490,7 @@ describe("VideoList", () => {
     const sortSelect = screen.getByRole("combobox", { name: "Sort Order" });
     expect(sortSelect).toBeInTheDocument();
     expect(sortSelect).toHaveValue("videoId");
-    expect(screen.getByText("Sort by Labeling Date")).toBeInTheDocument();
+    expect(screen.getByText("Labeling Date")).toBeInTheDocument();
   });
 
   it("should filter videos by sort option", async () => {

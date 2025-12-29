@@ -121,6 +121,7 @@ model Annotation {
 
   // Metadata
   labelingTimeMs    Int      @default(0) // Time taken to label in milliseconds
+  annotationType    String   @default("manual") // "manual" or "extrapolated"
 
   // Timestamps
   createdAt         DateTime @default(now())
@@ -131,6 +132,7 @@ model Annotation {
   @@index([videoId])
   @@index([userId])
   @@index([createdAt])
+  @@index([annotationType])
 }
 
 model Video {

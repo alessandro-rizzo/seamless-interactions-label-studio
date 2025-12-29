@@ -19,6 +19,8 @@ export async function GET(request: NextRequest) {
     const annotatedFilter = searchParams.get("annotatedFilter") || "all";
     const labelFilter = searchParams.get("labelFilter") || "all";
     const sortBy = searchParams.get("sortBy") || "videoId";
+    const annotationTypeFilter =
+      searchParams.get("annotationTypeFilter") || "all";
 
     const skip = (page - 1) * limit;
 
@@ -38,10 +40,34 @@ export async function GET(request: NextRequest) {
       where.label = labelFilter;
     }
 
-    // CHANGED: For annotated filter, we need to handle per-user
+    // CHANGED: For annotated filter and annotation type filter, handle per-user
     let videoIds: string[] | undefined;
-    if (annotatedFilter === "annotated") {
-      // Get all annotated video IDs FOR THIS USER
+
+    // Handle annotation type filter first (manual/extrapolated)
+    if (annotationTypeFilter === "manual") {
+      const manual = await prisma.annotation.findMany({
+        where: {
+          userId,
+          annotationType: "manual",
+        },
+        select: { videoId: true },
+        distinct: ["videoId"],
+      });
+      videoIds = manual.map((a) => a.videoId);
+      where.videoId = videoIds.length > 0 ? { in: videoIds } : { in: [] };
+    } else if (annotationTypeFilter === "extrapolated") {
+      const extrapolated = await prisma.annotation.findMany({
+        where: {
+          userId,
+          annotationType: "extrapolated",
+        },
+        select: { videoId: true },
+        distinct: ["videoId"],
+      });
+      videoIds = extrapolated.map((a) => a.videoId);
+      where.videoId = videoIds.length > 0 ? { in: videoIds } : { in: [] };
+    } else if (annotatedFilter === "annotated") {
+      // Get all annotated video IDs FOR THIS USER (both manual and extrapolated)
       const annotated = await prisma.annotation.findMany({
         where: { userId },
         select: { videoId: true },
@@ -92,6 +118,7 @@ export async function GET(request: NextRequest) {
           speaker2Id: true,
           speaker1Label: true,
           speaker2Label: true,
+          annotationType: true,
           createdAt: true,
         },
         orderBy: { createdAt: "desc" },
@@ -99,23 +126,40 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Get filter counts for the UI (PER USER)
-    const [totalCount, annotatedCount, improvisedCount, naturalisticCount] =
-      await Promise.all([
-        prisma.video.count(),
-        prisma.annotation.findMany({
-          where: { userId },
-          select: { videoId: true },
-          distinct: ["videoId"],
-        }),
-        prisma.video.count({ where: { label: "improvised" } }),
-        prisma.video.count({ where: { label: "naturalistic" } }),
-      ]);
+    const [
+      totalCount,
+      annotatedCount,
+      improvisedCount,
+      naturalisticCount,
+      manualCount,
+      extrapolatedCount,
+    ] = await Promise.all([
+      prisma.video.count(),
+      prisma.annotation.findMany({
+        where: { userId },
+        select: { videoId: true },
+        distinct: ["videoId"],
+      }),
+      prisma.video.count({ where: { label: "improvised" } }),
+      prisma.video.count({ where: { label: "naturalistic" } }),
+      prisma.annotation.count({
+        where: { userId, annotationType: "manual" },
+      }),
+      prisma.annotation.count({
+        where: { userId, annotationType: "extrapolated" },
+      }),
+    ]);
 
     const annotatedVideoIds = new Set(allAnnotations.map((a) => a.videoId));
 
     // Create annotation date map for sorting
     const annotationDateMap = new Map(
       annotations.map((a) => [a.videoId, a.createdAt]),
+    );
+
+    // Create annotation type map for UI display
+    const annotationTypeMap = new Map(
+      annotations.map((a) => [a.videoId, a.annotationType]),
     );
 
     // Convert to VideoMetadata format
@@ -180,6 +224,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       interactions,
       annotatedVideoIds: Array.from(annotatedVideoIds),
+      annotationTypes: Object.fromEntries(annotationTypeMap),
       total,
       page,
       limit,
@@ -190,6 +235,8 @@ export async function GET(request: NextRequest) {
         notAnnotated: totalCount - annotatedCount.length,
         improvised: improvisedCount,
         naturalistic: naturalisticCount,
+        manual: manualCount,
+        extrapolated: extrapolatedCount,
       },
       stats: {
         uniqueSpeakers,

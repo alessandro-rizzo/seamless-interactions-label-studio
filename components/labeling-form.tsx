@@ -43,6 +43,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
     existingAnnotation?.speaker2Comments || "",
   );
   const [isSaving, setIsSaving] = useState(false);
+  const [extrapolateToSession, setExtrapolateToSession] = useState(false);
 
   // Category annotations state
   const [speaker1Categories, setSpeaker1Categories] = useState<
@@ -178,6 +179,7 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
           speaker1Categories,
           speaker2Categories,
           labelingTimeMs: calculateLabelingTime(),
+          extrapolateToSession,
         }),
       });
 
@@ -540,6 +542,32 @@ export function LabelingForm({ video, existingAnnotation }: LabelingFormProps) {
             {saveError}
           </div>
         )}
+
+        {/* Extrapolation Checkbox */}
+        <div className="flex items-start gap-3 p-4 border rounded-lg bg-card">
+          <input
+            type="checkbox"
+            id="extrapolate-checkbox"
+            checked={extrapolateToSession}
+            onChange={(e) => setExtrapolateToSession(e.target.checked)}
+            disabled={isSaving || isDeleting}
+            className="mt-1 w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary focus:ring-offset-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
+          />
+          <label
+            htmlFor="extrapolate-checkbox"
+            className="flex-1 text-sm cursor-pointer select-none"
+          >
+            <div className="font-medium mb-1">
+              Apply to entire session (Vendor {video.vendorId}, Session{" "}
+              {video.sessionId})
+            </div>
+            <div className="text-muted-foreground">
+              Automatically apply these morph labels and confidence scores to
+              all unlabeled videos in this session. This creates extrapolated
+              annotations without timing data or behavioral signals.
+            </div>
+          </label>
+        </div>
 
         {/* Actions */}
         <div className="flex gap-3">

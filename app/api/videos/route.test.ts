@@ -27,6 +27,7 @@ jest.mock("@/lib/db", () => ({
     },
     annotation: {
       findMany: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
@@ -66,8 +67,8 @@ describe("/api/videos", () => {
   ];
 
   const mockAnnotations = [
-    { videoId: "V00_S0001_I00000001" },
-    { videoId: "V00_S0001_I00000003" },
+    { videoId: "V00_S0001_I00000001", annotationType: "manual" },
+    { videoId: "V00_S0001_I00000003", annotationType: "extrapolated" },
   ];
 
   const mockAnnotationsWithLabels = [
@@ -77,6 +78,7 @@ describe("/api/videos", () => {
       speaker2Id: "0002",
       speaker1Label: "Morph A",
       speaker2Label: "Morph B",
+      annotationType: "manual",
       createdAt: new Date("2024-01-01"),
     },
     {
@@ -85,6 +87,7 @@ describe("/api/videos", () => {
       speaker2Id: "0003",
       speaker1Label: "Morph A",
       speaker2Label: "Morph A",
+      annotationType: "extrapolated",
       createdAt: new Date("2024-01-02"),
     },
   ];
@@ -104,6 +107,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
       .mockResolvedValueOnce(mockAnnotationsWithLabels) // for annotations with labels
       .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1) // manual count
+      .mockResolvedValueOnce(1); // extrapolated count
 
     await testApiHandler({
       appHandler,
@@ -133,6 +139,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
 
     await testApiHandler({
       appHandler,
@@ -165,6 +174,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
 
     await testApiHandler({
       appHandler,
@@ -200,6 +212,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
 
     await testApiHandler({
       appHandler,
@@ -231,6 +246,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
       .mockResolvedValueOnce([]) // for annotations with labels
       .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
 
     await testApiHandler({
       appHandler,
@@ -272,6 +290,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations) // for allAnnotations
       .mockResolvedValueOnce(mockAnnotationsWithLabels) // for annotations with labels
       .mockResolvedValueOnce(mockAnnotations); // for annotatedCount
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1) // manual count
+      .mockResolvedValueOnce(1); // extrapolated count
 
     await testApiHandler({
       appHandler,
@@ -285,6 +306,8 @@ describe("/api/videos", () => {
           notAnnotated: 98,
           improvised: 60,
           naturalistic: 40,
+          manual: 1,
+          extrapolated: 1,
         });
       },
     });
@@ -301,6 +324,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce([]);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
 
     await testApiHandler({
       appHandler,
@@ -330,6 +356,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations)
       .mockResolvedValueOnce(mockAnnotationsWithLabels)
       .mockResolvedValueOnce(mockAnnotations);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
 
     await testApiHandler({
       appHandler,
@@ -359,6 +388,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations)
       .mockResolvedValueOnce(mockAnnotationsWithLabels)
       .mockResolvedValueOnce(mockAnnotations);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
 
     await testApiHandler({
       appHandler,
@@ -394,6 +426,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations)
       .mockResolvedValueOnce(mockAnnotationsWithLabels)
       .mockResolvedValueOnce(mockAnnotations);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
 
     await testApiHandler({
       appHandler,
@@ -421,6 +456,9 @@ describe("/api/videos", () => {
       .mockResolvedValueOnce(mockAnnotations)
       .mockResolvedValueOnce([])
       .mockResolvedValueOnce(mockAnnotations);
+    (prisma.annotation.count as jest.Mock)
+      .mockResolvedValueOnce(1)
+      .mockResolvedValueOnce(1);
 
     await testApiHandler({
       appHandler,

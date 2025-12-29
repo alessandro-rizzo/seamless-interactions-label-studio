@@ -90,6 +90,7 @@ describe("LabelingForm", () => {
     speaker2TimingLatency: [],
     speaker2RepairBehavior: [],
     labelingTimeMs: 5000,
+    annotationType: "manual",
     createdAt: new Date(),
     updatedAt: new Date(),
   };

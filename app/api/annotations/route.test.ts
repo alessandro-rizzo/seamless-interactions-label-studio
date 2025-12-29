@@ -25,6 +25,12 @@ jest.mock("@/lib/db", () => ({
       findUnique: jest.fn(),
       upsert: jest.fn(),
       delete: jest.fn(),
+      createMany: jest.fn(),
+      count: jest.fn(),
+    },
+    video: {
+      findMany: jest.fn(),
+      count: jest.fn(),
     },
   },
 }));
@@ -97,7 +103,7 @@ describe("/api/annotations", () => {
   });
 
   describe("POST", () => {
-    it("should create a new annotation", async () => {
+    it("should create a new annotation with manual type when labelingTimeMs > 0", async () => {
       const newAnnotation = {
         id: "1",
         videoId: "V1_S1_I1",
@@ -147,6 +153,312 @@ describe("/api/annotations", () => {
           expect(response.status).toBe(200);
           expect(data.videoId).toBe("V1_S1_I1");
           expect(mockPrisma.annotation.upsert).toHaveBeenCalled();
+        },
+      });
+    });
+
+    it("should create annotation with extrapolated type when labelingTimeMs = 0", async () => {
+      const newAnnotation = {
+        id: "1",
+        videoId: "V1_S1_I1",
+        vendorId: 1,
+        sessionId: 1,
+        interactionId: 1,
+        speaker1Id: "001",
+        speaker2Id: "002",
+        speaker1Label: "Morph A",
+        speaker2Label: "Morph B",
+        speaker1Confidence: 4,
+        speaker2Confidence: 3,
+        speaker1Comments: "",
+        speaker2Comments: "",
+        labelingTimeMs: 0,
+        annotationType: "extrapolated",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.annotation.upsert as jest.Mock).mockResolvedValue(
+        newAnnotation,
+      );
+
+      await testApiHandler({
+        appHandler,
+        test: async ({ fetch }) => {
+          const response = await fetch({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoId: "V1_S1_I1",
+              vendorId: 1,
+              sessionId: 1,
+              interactionId: 1,
+              speaker1Id: "001",
+              speaker2Id: "002",
+              speaker1Label: "Morph A",
+              speaker2Label: "Morph B",
+              speaker1Confidence: 4,
+              speaker2Confidence: 3,
+              labelingTimeMs: 0,
+            }),
+          });
+
+          const data = await response.json();
+
+          expect(response.status).toBe(200);
+          expect(mockPrisma.annotation.upsert).toHaveBeenCalledWith(
+            expect.objectContaining({
+              create: expect.objectContaining({
+                annotationType: "extrapolated",
+              }),
+              update: expect.objectContaining({
+                annotationType: "extrapolated",
+              }),
+            }),
+          );
+        },
+      });
+    });
+
+    it("should extrapolate to session when extrapolateToSession is true", async () => {
+      const newAnnotation = {
+        id: "1",
+        videoId: "V1_S1_I1",
+        vendorId: 1,
+        sessionId: 1,
+        interactionId: 1,
+        speaker1Id: "001",
+        speaker2Id: "002",
+        speaker1Label: "Morph A",
+        speaker2Label: "Morph B",
+        speaker1Confidence: 4,
+        speaker2Confidence: 3,
+        labelingTimeMs: 5000,
+        annotationType: "manual",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Mock session videos
+      (mockPrisma.video.findMany as jest.Mock).mockResolvedValue([
+        {
+          videoId: "V1_S1_I2",
+          vendorId: 1,
+          sessionId: 1,
+          interactionId: 2,
+          participant1Id: "003",
+          participant2Id: "004",
+        },
+        {
+          videoId: "V1_S1_I3",
+          vendorId: 1,
+          sessionId: 1,
+          interactionId: 3,
+          participant1Id: "005",
+          participant2Id: "006",
+        },
+      ]);
+
+      // Mock existing annotations (empty - no videos annotated yet)
+      (mockPrisma.annotation.findMany as jest.Mock).mockResolvedValue([]);
+
+      (mockPrisma.annotation.upsert as jest.Mock).mockResolvedValue(
+        newAnnotation,
+      );
+      (mockPrisma.annotation.createMany as jest.Mock).mockResolvedValue({
+        count: 2,
+      });
+
+      await testApiHandler({
+        appHandler,
+        test: async ({ fetch }) => {
+          const response = await fetch({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoId: "V1_S1_I1",
+              vendorId: 1,
+              sessionId: 1,
+              interactionId: 1,
+              speaker1Id: "001",
+              speaker2Id: "002",
+              speaker1Label: "Morph A",
+              speaker2Label: "Morph B",
+              speaker1Confidence: 4,
+              speaker2Confidence: 3,
+              labelingTimeMs: 5000,
+              extrapolateToSession: true,
+            }),
+          });
+
+          expect(response.status).toBe(200);
+          expect(mockPrisma.video.findMany).toHaveBeenCalledWith({
+            where: {
+              vendorId: 1,
+              sessionId: 1,
+              videoId: { not: "V1_S1_I1" },
+            },
+          });
+          expect(mockPrisma.annotation.createMany).toHaveBeenCalledWith({
+            data: expect.arrayContaining([
+              expect.objectContaining({
+                videoId: "V1_S1_I2",
+                speaker1Label: "Morph A",
+                speaker2Label: "Morph B",
+                labelingTimeMs: 0,
+                annotationType: "extrapolated",
+              }),
+              expect.objectContaining({
+                videoId: "V1_S1_I3",
+                speaker1Label: "Morph A",
+                speaker2Label: "Morph B",
+                labelingTimeMs: 0,
+                annotationType: "extrapolated",
+              }),
+            ]),
+            skipDuplicates: true,
+          });
+        },
+      });
+    });
+
+    it("should skip already annotated videos when extrapolating", async () => {
+      const newAnnotation = {
+        id: "1",
+        videoId: "V1_S1_I1",
+        vendorId: 1,
+        sessionId: 1,
+        interactionId: 1,
+        speaker1Id: "001",
+        speaker2Id: "002",
+        speaker1Label: "Morph A",
+        speaker2Label: "Morph B",
+        speaker1Confidence: 4,
+        speaker2Confidence: 3,
+        labelingTimeMs: 5000,
+        annotationType: "manual",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // Mock session videos
+      (mockPrisma.video.findMany as jest.Mock).mockResolvedValue([
+        {
+          videoId: "V1_S1_I2",
+          vendorId: 1,
+          sessionId: 1,
+          interactionId: 2,
+          participant1Id: "003",
+          participant2Id: "004",
+        },
+        {
+          videoId: "V1_S1_I3",
+          vendorId: 1,
+          sessionId: 1,
+          interactionId: 3,
+          participant1Id: "005",
+          participant2Id: "006",
+        },
+      ]);
+
+      // Mock existing annotations (V1_S1_I2 already annotated)
+      (mockPrisma.annotation.findMany as jest.Mock).mockResolvedValue([
+        { videoId: "V1_S1_I2" },
+      ]);
+
+      (mockPrisma.annotation.upsert as jest.Mock).mockResolvedValue(
+        newAnnotation,
+      );
+      (mockPrisma.annotation.createMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      });
+
+      await testApiHandler({
+        appHandler,
+        test: async ({ fetch }) => {
+          const response = await fetch({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoId: "V1_S1_I1",
+              vendorId: 1,
+              sessionId: 1,
+              interactionId: 1,
+              speaker1Id: "001",
+              speaker2Id: "002",
+              speaker1Label: "Morph A",
+              speaker2Label: "Morph B",
+              speaker1Confidence: 4,
+              speaker2Confidence: 3,
+              labelingTimeMs: 5000,
+              extrapolateToSession: true,
+            }),
+          });
+
+          expect(response.status).toBe(200);
+          // Should only create annotation for V1_S1_I3 (not V1_S1_I2)
+          expect(mockPrisma.annotation.createMany).toHaveBeenCalledWith({
+            data: [
+              expect.objectContaining({
+                videoId: "V1_S1_I3",
+                labelingTimeMs: 0,
+                annotationType: "extrapolated",
+              }),
+            ],
+            skipDuplicates: true,
+          });
+        },
+      });
+    });
+
+    it("should not extrapolate when extrapolateToSession is false", async () => {
+      const newAnnotation = {
+        id: "1",
+        videoId: "V1_S1_I1",
+        vendorId: 1,
+        sessionId: 1,
+        interactionId: 1,
+        speaker1Id: "001",
+        speaker2Id: "002",
+        speaker1Label: "Morph A",
+        speaker2Label: "Morph B",
+        speaker1Confidence: 4,
+        speaker2Confidence: 3,
+        labelingTimeMs: 5000,
+        annotationType: "manual",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      (mockPrisma.annotation.upsert as jest.Mock).mockResolvedValue(
+        newAnnotation,
+      );
+
+      await testApiHandler({
+        appHandler,
+        test: async ({ fetch }) => {
+          const response = await fetch({
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              videoId: "V1_S1_I1",
+              vendorId: 1,
+              sessionId: 1,
+              interactionId: 1,
+              speaker1Id: "001",
+              speaker2Id: "002",
+              speaker1Label: "Morph A",
+              speaker2Label: "Morph B",
+              speaker1Confidence: 4,
+              speaker2Confidence: 3,
+              labelingTimeMs: 5000,
+              extrapolateToSession: false,
+            }),
+          });
+
+          expect(response.status).toBe(200);
+          expect(mockPrisma.video.findMany).not.toHaveBeenCalled();
+          expect(mockPrisma.annotation.createMany).not.toHaveBeenCalled();
         },
       });
     });

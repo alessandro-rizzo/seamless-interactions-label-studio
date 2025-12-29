@@ -40,6 +40,19 @@ export interface AnnotationPayload {
   speaker1Categories?: CategoryAnnotations;
   speaker2Categories?: CategoryAnnotations;
   labelingTimeMs: number;
+  extrapolateToSession?: boolean;
+}
+
+/**
+ * Annotation type discriminator
+ */
+export type AnnotationType = "manual" | "extrapolated";
+
+/**
+ * Helper function to check if annotation is manual based on timing
+ */
+export function isManualAnnotation(labelingTimeMs: number): boolean {
+  return labelingTimeMs > 0;
 }
 
 /**

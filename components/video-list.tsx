@@ -25,11 +25,14 @@ interface FilterCounts {
   notAnnotated: number;
   improvised: number;
   naturalistic: number;
+  manual: number;
+  extrapolated: number;
 }
 
 interface ApiResponse {
   interactions: VideoMetadata[];
   annotatedVideoIds: string[];
+  annotationTypes: Record<string, string>;
   total: number;
   page: number;
   limit: number;
@@ -55,6 +58,9 @@ export function VideoList({ showStats = false }: VideoListProps) {
   const [labelFilter, setLabelFilter] = useState<
     "all" | "improvised" | "naturalistic"
   >("all");
+  const [annotationTypeFilter, setAnnotationTypeFilter] = useState<
+    "all" | "manual" | "extrapolated"
+  >("all");
   const [sortBy, setSortBy] = useState<"videoId" | "annotatedAt">("videoId");
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -77,6 +83,7 @@ export function VideoList({ showStats = false }: VideoListProps) {
           search: debouncedSearch,
           annotatedFilter,
           labelFilter,
+          annotationTypeFilter,
           sortBy,
         });
 
@@ -95,7 +102,14 @@ export function VideoList({ showStats = false }: VideoListProps) {
     };
 
     fetchData();
-  }, [currentPage, debouncedSearch, annotatedFilter, labelFilter, sortBy]);
+  }, [
+    currentPage,
+    debouncedSearch,
+    annotatedFilter,
+    labelFilter,
+    annotationTypeFilter,
+    sortBy,
+  ]);
 
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
@@ -118,6 +132,8 @@ export function VideoList({ showStats = false }: VideoListProps) {
     notAnnotated: 0,
     improvised: 0,
     naturalistic: 0,
+    manual: 0,
+    extrapolated: 0,
   };
 
   const totalPages = data?.totalPages || 0;
@@ -204,65 +220,107 @@ export function VideoList({ showStats = false }: VideoListProps) {
       <div className="flex-shrink-0 container mx-auto px-4 py-4 border-b bg-background">
         <div className="space-y-4">
           <div className="flex gap-4">
-            <input
-              type="text"
-              placeholder="Search by video ID..."
-              value={search}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              className="flex-1 px-4 py-2 border rounded-lg bg-background"
-              disabled={loading}
-            />
-            <select
-              value={annotatedFilter}
-              onChange={(e) => {
-                setAnnotatedFilter(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border rounded-lg bg-background"
-              aria-label="Annotation Status Filter"
-              disabled={loading}
-            >
-              <option value="all">All Status ({filterCounts.total})</option>
-              <option value="annotated">
-                Annotated ({filterCounts.annotated})
-              </option>
-              <option value="not-annotated">
-                Not Annotated ({filterCounts.notAnnotated})
-              </option>
-            </select>
+            <div className="flex-1">
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Search
+              </label>
+              <input
+                type="text"
+                placeholder="Search by video ID..."
+                value={search}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg bg-background"
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Status
+              </label>
+              <select
+                value={annotatedFilter}
+                onChange={(e) => {
+                  setAnnotatedFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg bg-background"
+                aria-label="Annotation Status Filter"
+                disabled={loading}
+              >
+                <option value="all">All ({filterCounts.total})</option>
+                <option value="annotated">
+                  Annotated ({filterCounts.annotated})
+                </option>
+                <option value="not-annotated">
+                  Not Annotated ({filterCounts.notAnnotated})
+                </option>
+              </select>
+            </div>
 
-            <select
-              value={labelFilter}
-              onChange={(e) => {
-                setLabelFilter(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border rounded-lg bg-background"
-              aria-label="Label Type Filter"
-              disabled={loading}
-            >
-              <option value="all">All Types ({filterCounts.total})</option>
-              <option value="improvised">
-                Improvised ({filterCounts.improvised})
-              </option>
-              <option value="naturalistic">
-                Naturalistic ({filterCounts.naturalistic})
-              </option>
-            </select>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Annotation Type
+              </label>
+              <select
+                value={annotationTypeFilter}
+                onChange={(e) => {
+                  setAnnotationTypeFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg bg-background"
+                aria-label="Annotation Type Filter"
+                disabled={loading}
+              >
+                <option value="all">All ({filterCounts.annotated})</option>
+                <option value="manual">Manual ({filterCounts.manual})</option>
+                <option value="extrapolated">
+                  Extrapolated ({filterCounts.extrapolated})
+                </option>
+              </select>
+            </div>
 
-            <select
-              value={sortBy}
-              onChange={(e) => {
-                setSortBy(e.target.value as any);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 border rounded-lg bg-background"
-              aria-label="Sort Order"
-              disabled={loading}
-            >
-              <option value="videoId">Sort by Video ID</option>
-              <option value="annotatedAt">Sort by Labeling Date</option>
-            </select>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Label
+              </label>
+              <select
+                value={labelFilter}
+                onChange={(e) => {
+                  setLabelFilter(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg bg-background"
+                aria-label="Label Type Filter"
+                disabled={loading}
+              >
+                <option value="all">All ({filterCounts.total})</option>
+                <option value="improvised">
+                  Improvised ({filterCounts.improvised})
+                </option>
+                <option value="naturalistic">
+                  Naturalistic ({filterCounts.naturalistic})
+                </option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">
+                Sort
+              </label>
+              <select
+                value={sortBy}
+                onChange={(e) => {
+                  setSortBy(e.target.value as any);
+                  setCurrentPage(1);
+                }}
+                className="px-4 py-2 border rounded-lg bg-background"
+                aria-label="Sort Order"
+                disabled={loading}
+              >
+                <option value="videoId">Video ID</option>
+                <option value="annotatedAt">Labeling Date</option>
+              </select>
+            </div>
           </div>
 
           {/* Results count and pagination info */}
@@ -303,6 +361,8 @@ export function VideoList({ showStats = false }: VideoListProps) {
             <div className="grid gap-4">
               {interactions.map((interaction) => {
                 const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+                const annotationType =
+                  data?.annotationTypes[interaction.videoId];
 
                 return (
                   <div
@@ -315,9 +375,21 @@ export function VideoList({ showStats = false }: VideoListProps) {
                           {interaction.videoId}
                         </h2>
                         {isAnnotated && (
-                          <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
-                            Annotated
-                          </span>
+                          <>
+                            <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
+                              Annotated
+                            </span>
+                            {annotationType === "manual" && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-teal-500/20 text-teal-600 font-medium">
+                                Manual
+                              </span>
+                            )}
+                            {annotationType === "extrapolated" && (
+                              <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-600 font-medium">
+                                Extrapolated
+                              </span>
+                            )}
+                          </>
                         )}
                       </div>
                       <div className="text-sm text-muted-foreground mt-1">
