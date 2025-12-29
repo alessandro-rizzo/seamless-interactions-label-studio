@@ -472,12 +472,11 @@ describe("VideoList", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Morph Distribution")).toBeInTheDocument();
+      expect(screen.getByText(/Morph A/)).toBeInTheDocument();
+      expect(screen.getByText(/Morph B/)).toBeInTheDocument();
+      expect(screen.getByText(/30 \(30.0%\)/)).toBeInTheDocument();
+      expect(screen.getByText(/70 \(70.0%\)/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText(/Morph A/)).toBeInTheDocument();
-    expect(screen.getByText(/Morph B/)).toBeInTheDocument();
-    expect(screen.getByText(/30 \(30.0%\)/)).toBeInTheDocument();
-    expect(screen.getByText(/70 \(70.0%\)/)).toBeInTheDocument();
   });
 
   it("should have sort dropdown with correct options", async () => {
