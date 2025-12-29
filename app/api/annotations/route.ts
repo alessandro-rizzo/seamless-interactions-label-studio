@@ -10,6 +10,8 @@ async function extrapolateAnnotationsToSession({
   vendorId,
   sessionId,
   currentVideoId,
+  speaker1Id,
+  speaker2Id,
   speaker1Label,
   speaker2Label,
   speaker1Confidence,
@@ -19,11 +21,18 @@ async function extrapolateAnnotationsToSession({
   vendorId: number;
   sessionId: number;
   currentVideoId: string;
+  speaker1Id: string;
+  speaker2Id: string;
   speaker1Label: string;
   speaker2Label: string;
   speaker1Confidence: number;
   speaker2Confidence: number;
 }) {
+  // Create a map of speaker ID to their label and confidence
+  const speakerLabels = new Map([
+    [speaker1Id, { label: speaker1Label, confidence: speaker1Confidence }],
+    [speaker2Id, { label: speaker2Label, confidence: speaker2Confidence }],
+  ]);
   // 1. Get all videos in the same session
   const sessionVideos = await prisma.video.findMany({
     where: {
@@ -58,18 +67,23 @@ async function extrapolateAnnotationsToSession({
   // 4. Batch create extrapolated annotations
   if (unlabeledVideos.length > 0) {
     await prisma.annotation.createMany({
-      data: unlabeledVideos.map((video) => ({
-        userId,
-        videoId: video.videoId,
-        vendorId: video.vendorId,
-        sessionId: video.sessionId,
-        interactionId: video.interactionId,
-        speaker1Id: video.participant1Id,
-        speaker2Id: video.participant2Id,
-        speaker1Label,
-        speaker2Label,
-        speaker1Confidence,
-        speaker2Confidence,
+      data: unlabeledVideos.map((video) => {
+        // Map labels by speaker ID, not position
+        const video1Data = speakerLabels.get(video.participant1Id);
+        const video2Data = speakerLabels.get(video.participant2Id);
+
+        return {
+          userId,
+          videoId: video.videoId,
+          vendorId: video.vendorId,
+          sessionId: video.sessionId,
+          interactionId: video.interactionId,
+          speaker1Id: video.participant1Id,
+          speaker2Id: video.participant2Id,
+          speaker1Label: video1Data?.label || "Unknown",
+          speaker2Label: video2Data?.label || "Unknown",
+          speaker1Confidence: video1Data?.confidence || 3,
+          speaker2Confidence: video2Data?.confidence || 3,
         // Extrapolated annotations have NO optional fields
         speaker1Comments: "",
         speaker2Comments: "",
@@ -96,11 +110,12 @@ async function extrapolateAnnotationsToSession({
         speaker2InteractionalRole: [],
         speaker2TimingLatency: [],
         speaker2RepairBehavior: [],
-        // NO timing for extrapolated
-        labelingTimeMs: 0,
-        // Mark as extrapolated
-        annotationType: "extrapolated",
-      })),
+          // NO timing for extrapolated
+          labelingTimeMs: 0,
+          // Mark as extrapolated
+          annotationType: "extrapolated",
+        };
+      }),
       skipDuplicates: true, // Safety measure
     });
   }
@@ -264,6 +279,8 @@ export async function POST(request: NextRequest) {
         vendorId,
         sessionId,
         currentVideoId: videoId,
+        speaker1Id,
+        speaker2Id,
         speaker1Label,
         speaker2Label,
         speaker1Confidence,

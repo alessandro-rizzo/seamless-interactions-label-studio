@@ -239,23 +239,23 @@ describe("/api/annotations", () => {
         updatedAt: new Date(),
       };
 
-      // Mock session videos
+      // Mock session videos - same speakers as original annotation but possibly in different positions
       (mockPrisma.video.findMany as jest.Mock).mockResolvedValue([
         {
           videoId: "V1_S1_I2",
           vendorId: 1,
           sessionId: 1,
           interactionId: 2,
-          participant1Id: "003",
-          participant2Id: "004",
+          participant1Id: "001", // Same speakers as original
+          participant2Id: "002",
         },
         {
           videoId: "V1_S1_I3",
           vendorId: 1,
           sessionId: 1,
           interactionId: 3,
-          participant1Id: "005",
-          participant2Id: "006",
+          participant1Id: "002", // Swapped positions to test speaker ID mapping
+          participant2Id: "001",
         },
       ]);
 
@@ -303,15 +303,19 @@ describe("/api/annotations", () => {
             data: expect.arrayContaining([
               expect.objectContaining({
                 videoId: "V1_S1_I2",
-                speaker1Label: "Morph A",
-                speaker2Label: "Morph B",
+                speaker1Id: "001",
+                speaker2Id: "002",
+                speaker1Label: "Morph A", // 001 gets Morph A
+                speaker2Label: "Morph B", // 002 gets Morph B
                 labelingTimeMs: 0,
                 annotationType: "extrapolated",
               }),
               expect.objectContaining({
                 videoId: "V1_S1_I3",
-                speaker1Label: "Morph A",
-                speaker2Label: "Morph B",
+                speaker1Id: "002",
+                speaker2Id: "001",
+                speaker1Label: "Morph B", // 002 gets Morph B (swapped position)
+                speaker2Label: "Morph A", // 001 gets Morph A (swapped position)
                 labelingTimeMs: 0,
                 annotationType: "extrapolated",
               }),
