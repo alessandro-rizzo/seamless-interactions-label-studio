@@ -68,6 +68,12 @@ export function VideoList({ showStats = false }: VideoListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Selection state - persists across pages/filters
+  const [selectedVideoIds, setSelectedVideoIds] = useState<Set<string>>(
+    new Set(),
+  );
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
   // Debounce search input
   const debouncedSearch = useDebounce(search, 300);
 
@@ -110,6 +116,104 @@ export function VideoList({ showStats = false }: VideoListProps) {
     annotationTypeFilter,
     sortBy,
   ]);
+
+  // Selection handlers
+  const toggleVideoSelection = (videoId: string) => {
+    const newSet = new Set(selectedVideoIds);
+    if (newSet.has(videoId)) {
+      newSet.delete(videoId);
+    } else {
+      newSet.add(videoId);
+    }
+    setSelectedVideoIds(newSet);
+  };
+
+  const getCurrentPageAnnotatedIds = () => {
+    if (!data) return [];
+    return data.interactions
+      .filter((v) => data.annotatedVideoIds.includes(v.videoId))
+      .map((v) => v.videoId);
+  };
+
+  const areAllCurrentPageSelected = () => {
+    const annotatedIds = getCurrentPageAnnotatedIds();
+    return (
+      annotatedIds.length > 0 &&
+      annotatedIds.every((id) => selectedVideoIds.has(id))
+    );
+  };
+
+  const toggleSelectAllCurrentPage = () => {
+    const annotatedIds = getCurrentPageAnnotatedIds();
+    const newSet = new Set(selectedVideoIds);
+
+    if (areAllCurrentPageSelected()) {
+      // Deselect all on current page
+      annotatedIds.forEach((id) => newSet.delete(id));
+    } else {
+      // Select all on current page
+      annotatedIds.forEach((id) => newSet.add(id));
+    }
+
+    setSelectedVideoIds(newSet);
+  };
+
+  const clearAllSelections = () => {
+    setSelectedVideoIds(new Set());
+  };
+
+  const getVisibleSelectedCount = () => {
+    if (!data) return 0;
+    return data.interactions.filter((v) => selectedVideoIds.has(v.videoId))
+      .length;
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedVideoIds.size === 0) return;
+
+    const message = `Delete ${selectedVideoIds.size} annotation(s)?\n\nThis will permanently delete the annotations. This action cannot be undone.`;
+
+    if (!confirm(message)) return;
+
+    setIsDeletingBatch(true);
+    try {
+      const response = await fetch("/api/annotations/batch", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "delete",
+          videoIds: Array.from(selectedVideoIds),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to delete annotations");
+      }
+
+      // Clear selection and refetch data
+      clearAllSelections();
+      // Re-fetch data by calling the same fetch logic
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: ITEMS_PER_PAGE.toString(),
+        search: debouncedSearch,
+        annotatedFilter,
+        labelFilter,
+        annotationTypeFilter,
+        sortBy,
+      });
+
+      const refreshResponse = await fetch(`/api/videos?${params}`);
+      if (refreshResponse.ok) {
+        const result = await refreshResponse.json();
+        setData(result);
+      }
+    } catch (err) {
+      setError("Failed to delete annotations. Please try again.");
+    } finally {
+      setIsDeletingBatch(false);
+    }
+  };
 
   const handleSearchChange = (newSearch: string) => {
     setSearch(newSearch);
@@ -343,6 +447,61 @@ export function VideoList({ showStats = false }: VideoListProps) {
         </div>
       </div>
 
+      {/* Batch Action Bar - shows when selections exist */}
+      {selectedVideoIds.size > 0 && (
+        <div className="flex-shrink-0 container mx-auto px-4 py-3 bg-muted/50 border-b">
+          <div className="flex items-center gap-4">
+            {/* Select All Current Page Checkbox */}
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="select-all-page"
+                checked={areAllCurrentPageSelected()}
+                onChange={toggleSelectAllCurrentPage}
+                className="w-4 h-4 rounded border-gray-300"
+                disabled={loading || isDeletingBatch}
+                aria-label="Select all on current page"
+              />
+              <label
+                htmlFor="select-all-page"
+                className="text-sm font-medium cursor-pointer"
+              >
+                Select All on Page
+              </label>
+            </div>
+
+            {/* Selection Count */}
+            <div className="flex-1 flex items-center gap-2 text-sm">
+              <span className="font-medium">
+                {selectedVideoIds.size} selected
+              </span>
+              <span className="text-muted-foreground">
+                ({getVisibleSelectedCount()} visible)
+              </span>
+            </div>
+
+            {/* Actions */}
+            <button
+              onClick={clearAllSelections}
+              className="px-3 py-1.5 text-sm border rounded hover:bg-muted"
+              disabled={isDeletingBatch}
+            >
+              Clear All
+            </button>
+
+            <button
+              onClick={handleBatchDelete}
+              disabled={isDeletingBatch || selectedVideoIds.size === 0}
+              className="px-4 py-1.5 text-sm font-medium rounded bg-destructive/10 text-destructive hover:bg-destructive hover:text-destructive-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isDeletingBatch
+                ? "Deleting..."
+                : `Delete ${selectedVideoIds.size} Selected`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Scrollable Video Grid */}
       <div className="flex-1 overflow-y-auto">
         <div className="container mx-auto px-4 py-4">
@@ -361,53 +520,77 @@ export function VideoList({ showStats = false }: VideoListProps) {
             <div className="grid gap-4">
               {interactions.map((interaction) => {
                 const isAnnotated = annotatedVideoIds.has(interaction.videoId);
+                const isSelected = selectedVideoIds.has(interaction.videoId);
                 const annotationType =
                   data?.annotationTypes[interaction.videoId];
 
                 return (
                   <div
                     key={interaction.videoId}
-                    className="p-6 border rounded-lg bg-card flex items-center justify-between"
+                    className={`p-6 border rounded-lg bg-card hover:shadow-md transition-shadow ${
+                      isSelected ? "ring-2 ring-primary" : ""
+                    }`}
                   >
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3">
-                        <h2 className="text-lg font-semibold">
-                          {interaction.videoId}
-                        </h2>
-                        {isAnnotated && (
-                          <>
-                            <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
-                              Annotated
-                            </span>
-                            {annotationType === "manual" && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-teal-500/20 text-teal-600 font-medium">
-                                Manual
-                              </span>
+                    <div className="flex items-start gap-4">
+                      {/* Checkbox - only show for annotated videos */}
+                      {isAnnotated && (
+                        <div className="flex-shrink-0 pt-1">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() =>
+                              toggleVideoSelection(interaction.videoId)
+                            }
+                            className="w-5 h-5 rounded border-gray-300 cursor-pointer"
+                            disabled={loading || isDeletingBatch}
+                            aria-label={`Select ${interaction.videoId}`}
+                          />
+                        </div>
+                      )}
+
+                      {/* Existing card content */}
+                      <div className="flex-1 min-w-0 flex items-center justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-lg font-semibold">
+                              {interaction.videoId}
+                            </h2>
+                            {isAnnotated && (
+                              <>
+                                <span className="px-2 py-1 text-xs rounded-full bg-green-500/20 text-green-600 font-medium">
+                                  Annotated
+                                </span>
+                                {annotationType === "manual" && (
+                                  <span className="px-2 py-1 text-xs rounded-full bg-teal-500/20 text-teal-600 font-medium">
+                                    Manual
+                                  </span>
+                                )}
+                                {annotationType === "extrapolated" && (
+                                  <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-600 font-medium">
+                                    Extrapolated
+                                  </span>
+                                )}
+                              </>
                             )}
-                            {annotationType === "extrapolated" && (
-                              <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-600 font-medium">
-                                Extrapolated
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                      <div className="text-sm text-muted-foreground mt-1">
-                        Vendor {interaction.vendorId} • Session{" "}
-                        {interaction.sessionId} • Interaction{" "}
-                        {interaction.interactionId}
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {interaction.label} • {interaction.split}
+                          </div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            Vendor {interaction.vendorId} • Session{" "}
+                            {interaction.sessionId} • Interaction{" "}
+                            {interaction.interactionId}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {interaction.label} • {interaction.split}
+                          </div>
+                        </div>
+
+                        <Link
+                          href={`/videos/${interaction.videoId}`}
+                          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
+                        >
+                          {isAnnotated ? "Edit" : "Label"} →
+                        </Link>
                       </div>
                     </div>
-
-                    <Link
-                      href={`/videos/${interaction.videoId}`}
-                      className="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      {isAnnotated ? "Edit" : "Label"} →
-                    </Link>
                   </div>
                 );
               })}

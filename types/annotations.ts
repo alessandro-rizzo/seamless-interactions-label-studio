@@ -104,3 +104,19 @@ export function getSelectedSignalCount(
     0,
   );
 }
+
+/**
+ * Batch delete request payload
+ */
+export interface BatchDeleteRequest {
+  action: "delete";
+  videoIds: string[];
+}
+
+/**
+ * Batch delete response
+ */
+export interface BatchDeleteResponse {
+  success: boolean;
+  deletedCount: number;
+}

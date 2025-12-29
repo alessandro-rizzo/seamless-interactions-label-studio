@@ -280,15 +280,18 @@ The e2e test suite automatically:
 The system supports **session-wide extrapolation** for efficient bulk labeling:
 
 **How It Works**:
+
 - Videos in the dataset are grouped by session (Vendor ID + Session ID)
 - When you manually annotate one video and check "Apply to entire session", the system automatically creates extrapolated annotations for all other unlabeled videos in that session
 - Morph labels and confidence scores are mapped by **speaker ID** (not position), ensuring correct label assignment even when speakers appear in different positions across videos
 
 **Annotation Types**:
+
 - **Manual** (Green badge): You watched the video and labeled it yourself (has timing data)
 - **Extrapolated** (Blue badge): System inferred labels from another video in the same session (no timing data or behavioral signals)
 
 **Key Features**:
+
 - Only applies to unlabeled videos (won't overwrite existing annotations)
 - Preserves morph labels and confidence scores
 - Omits comments and behavioral signals (these must be added manually)

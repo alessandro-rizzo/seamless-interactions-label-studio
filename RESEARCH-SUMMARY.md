@@ -65,12 +65,14 @@ Custom Next.js application with:
 The system distinguishes between two types of annotations:
 
 **Manual Annotations**:
+
 - Annotator watched the video and labeled it directly
 - Contains timing data (`labelingTimeMs > 0`)
 - Can include behavioral signals and qualitative memos
 - Marked with green badge in UI
 
 **Extrapolated Annotations**:
+
 - System inferred labels from another video in the same session
 - No timing data (`labelingTimeMs = 0`)
 - Contains only morph labels and confidence scores (no behavioral signals or comments)
@@ -78,6 +80,7 @@ The system distinguishes between two types of annotations:
 - Created via session-wide extrapolation feature
 
 **Annotation Type Logic**:
+
 - Type is automatically determined by `labelingTimeMs` field
 - Manual annotation of an extrapolated video converts it to manual type
 - Speaker ID mapping ensures correct label assignment when speakers appear in different positions across videos
@@ -334,14 +337,14 @@ For each speaker (1 and 2) and each facet:
 
 #### **Metadata Fields**
 
-| Field            | Type    | Description                                                   |
-| ---------------- | ------- | ------------------------------------------------------------- |
-| `annotationType` | string  | Type of annotation: "manual" or "extrapolated"                |
-| `labelingTimeMs` | integer | Time spent on annotation (milliseconds, 0 for extrapolated)   |
-| `createdAt`      | ISO8601 | Timestamp of annotation creation                              |
-| `updatedAt`      | ISO8601 | Timestamp of last modification                                |
-| `userEmail`      | string  | Annotator email address                                       |
-| `username`       | string  | Annotator username (part before @)                            |
+| Field            | Type    | Description                                                 |
+| ---------------- | ------- | ----------------------------------------------------------- |
+| `annotationType` | string  | Type of annotation: "manual" or "extrapolated"              |
+| `labelingTimeMs` | integer | Time spent on annotation (milliseconds, 0 for extrapolated) |
+| `createdAt`      | ISO8601 | Timestamp of annotation creation                            |
+| `updatedAt`      | ISO8601 | Timestamp of last modification                              |
+| `userEmail`      | string  | Annotator email address                                     |
+| `username`       | string  | Annotator username (part before @)                          |
 
 ### 4.3 Example Data Record (JSON)
 
@@ -442,6 +445,7 @@ An extrapolated annotation has the same structure but with key differences:
 ```
 
 **Key Differences**:
+
 - `annotationType`: "extrapolated"
 - `labelingTimeMs`: 0 (no direct observation)
 - All behavioral signal arrays are empty
@@ -457,6 +461,7 @@ An extrapolated annotation has the same structure but with key differences:
 In the Seamless Interaction Dataset, videos are grouped into **sessions** where the same two participants engage in multiple interactions. Within a session, speakers typically maintain consistent behavioral patterns and morphological characteristics. Session-wide extrapolation leverages this structure to accelerate bulk labeling while maintaining data quality.
 
 **Use Cases**:
+
 - Rapid initial labeling of large datasets
 - Preliminary classification for subsequent detailed coding
 - Identifying sessions requiring full manual review
@@ -467,6 +472,7 @@ In the Seamless Interaction Dataset, videos are grouped into **sessions** where 
 **Session Definition**: Videos share a session when they have identical `vendorId` and `sessionId` values.
 
 **Process**:
+
 1. Annotator manually labels one video in a session (creates manual annotation)
 2. Optionally checks "Apply to entire session" before saving
 3. System identifies all other unlabeled videos in the same session
@@ -476,6 +482,7 @@ In the Seamless Interaction Dataset, videos are grouped into **sessions** where 
    - **Type**: Marked as "extrapolated"
 
 **Speaker ID Mapping**:
+
 - Critical implementation: Morph labels are mapped by **speaker ID**, not video position
 - Ensures correct assignment when speakers appear in different positions (participant1 vs participant2) across videos
 - Example: If Speaker P0799 is labeled "Morph A" in Video 1 (position 1), they receive "Morph A" in Video 2 even if appearing in position 2
@@ -483,18 +490,21 @@ In the Seamless Interaction Dataset, videos are grouped into **sessions** where 
 ### 5.3 Data Quality Considerations
 
 **Advantages**:
+
 - Efficient bulk labeling for large sessions
 - Preserves primary classification across related interactions
 - Reduces annotator fatigue for repetitive sessions
 - Enables rapid dataset preparation
 
 **Limitations**:
+
 - Assumes behavioral consistency within sessions (may not hold for all contexts)
 - Loses timing and observational detail
 - Does not capture interaction-specific behavioral signals
 - May propagate errors across session if initial annotation is incorrect
 
 **Best Practices**:
+
 1. Use extrapolation for preliminary classification only
 2. Manually review extrapolated annotations for critical analyses
 3. Filter by `annotationType` to separate manual from extrapolated data in statistical analyses
@@ -503,6 +513,7 @@ In the Seamless Interaction Dataset, videos are grouped into **sessions** where 
 ### 5.4 Converting Extrapolated to Manual Annotations
 
 Extrapolated annotations automatically convert to manual type when:
+
 - User opens the video and re-saves the annotation
 - New `labelingTimeMs > 0` is recorded
 - Behavioral signals or comments are added
