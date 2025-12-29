@@ -64,6 +64,7 @@ const mockApiResponse = {
     naturalistic: 40,
   },
   stats: {
+    uniqueSpeakers: 25,
     morphACount: 30,
     morphBCount: 70,
     morphAPercentage: 30,
@@ -428,7 +429,7 @@ describe("VideoList", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Annotated Videos")).toBeInTheDocument();
-      expect(screen.getByText("Labeled Speakers")).toBeInTheDocument();
+      expect(screen.getByText("Unique Speakers Labeled")).toBeInTheDocument();
       expect(screen.getByText("Morph Distribution")).toBeInTheDocument();
     });
 
@@ -437,12 +438,12 @@ describe("VideoList", () => {
       const annotatedVideosCard = screen
         .getByText("Annotated Videos")
         .closest("div");
-      const labeledSpeakersCard = screen
-        .getByText("Labeled Speakers")
+      const uniqueSpeakersCard = screen
+        .getByText("Unique Speakers Labeled")
         .closest("div");
 
       expect(annotatedVideosCard).toHaveTextContent("50");
-      expect(labeledSpeakersCard).toHaveTextContent("100");
+      expect(uniqueSpeakersCard).toHaveTextContent("25");
     });
   });
 
@@ -454,7 +455,9 @@ describe("VideoList", () => {
     });
 
     expect(screen.queryByText("Annotated Videos")).not.toBeInTheDocument();
-    expect(screen.queryByText("Labeled Speakers")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Unique Speakers Labeled"),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Morph Distribution")).not.toBeInTheDocument();
   });
 

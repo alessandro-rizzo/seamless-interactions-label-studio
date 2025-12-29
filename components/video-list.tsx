@@ -36,6 +36,7 @@ interface ApiResponse {
   totalPages: number;
   filterCounts: FilterCounts;
   stats: {
+    uniqueSpeakers: number;
     morphACount: number;
     morphBCount: number;
     morphAPercentage: number;
@@ -127,13 +128,14 @@ export function VideoList({ showStats = false }: VideoListProps) {
 
   // Calculate stats for display if showStats is true
   const annotatedVideos = filterCounts.annotated;
-  const totalSpeakers = annotatedVideos * 2;
   const stats = data?.stats || {
+    uniqueSpeakers: 0,
     morphACount: 0,
     morphBCount: 0,
     morphAPercentage: 0,
     morphBPercentage: 0,
   };
+  const uniqueSpeakers = stats.uniqueSpeakers;
 
   return (
     <div className="h-full flex flex-col">
@@ -149,15 +151,15 @@ export function VideoList({ showStats = false }: VideoListProps) {
             </div>
             <div className="p-6 border rounded-lg bg-card">
               <h3 className="text-sm font-medium text-muted-foreground">
-                Labeled Speakers
+                Unique Speakers Labeled
               </h3>
-              <p className="text-3xl font-bold mt-2">{totalSpeakers}</p>
+              <p className="text-3xl font-bold mt-2">{uniqueSpeakers}</p>
             </div>
             <div className="p-6 border rounded-lg bg-card">
               <h3 className="text-sm font-medium text-muted-foreground mb-4">
                 Morph Distribution
               </h3>
-              {totalSpeakers > 0 ? (
+              {uniqueSpeakers > 0 ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-6">
                     <div className="flex items-center gap-2">

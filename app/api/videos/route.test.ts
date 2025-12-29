@@ -73,12 +73,16 @@ describe("/api/videos", () => {
   const mockAnnotationsWithLabels = [
     {
       videoId: "V00_S0001_I00000001",
+      speaker1Id: "0001",
+      speaker2Id: "0002",
       speaker1Label: "Morph A",
       speaker2Label: "Morph B",
       createdAt: new Date("2024-01-01"),
     },
     {
       videoId: "V00_S0001_I00000003",
+      speaker1Id: "0001",
+      speaker2Id: "0003",
       speaker1Label: "Morph A",
       speaker2Label: "Morph A",
       createdAt: new Date("2024-01-02"),
@@ -335,6 +339,7 @@ describe("/api/videos", () => {
 
         expect(response.status).toBe(200);
         expect(data.stats).toBeDefined();
+        expect(data.stats.uniqueSpeakers).toBe(3); // "0001", "0002", "0003"
         expect(data.stats.morphACount).toBe(3); // 2 from first annotation, 2 from second
         expect(data.stats.morphBCount).toBe(1);
         expect(data.stats.morphAPercentage).toBe(75);

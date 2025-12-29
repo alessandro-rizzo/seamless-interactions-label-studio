@@ -88,6 +88,8 @@ export async function GET(request: NextRequest) {
         where: { userId },
         select: {
           videoId: true,
+          speaker1Id: true,
+          speaker2Id: true,
           speaker1Label: true,
           speaker2Label: true,
           createdAt: true,
@@ -147,7 +149,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate morph distribution stats (PER USER)
-    const totalSpeakers = annotations.length * 2;
+    // Calculate unique speakers labeled by this user
+    const uniqueSpeakersSet = new Set<string>();
+    annotations.forEach((a) => {
+      uniqueSpeakersSet.add(a.speaker1Id);
+      uniqueSpeakersSet.add(a.speaker2Id);
+    });
+    const uniqueSpeakers = uniqueSpeakersSet.size;
+
     const morphACount = annotations.reduce((sum, a) => {
       return (
         sum +
@@ -162,10 +171,11 @@ export async function GET(request: NextRequest) {
         (a.speaker2Label === "Morph B" ? 1 : 0)
       );
     }, 0);
+    const totalSpeakerLabels = annotations.length * 2;
     const morphAPercentage =
-      totalSpeakers > 0 ? (morphACount / totalSpeakers) * 100 : 0;
+      totalSpeakerLabels > 0 ? (morphACount / totalSpeakerLabels) * 100 : 0;
     const morphBPercentage =
-      totalSpeakers > 0 ? (morphBCount / totalSpeakers) * 100 : 0;
+      totalSpeakerLabels > 0 ? (morphBCount / totalSpeakerLabels) * 100 : 0;
 
     return NextResponse.json({
       interactions,
@@ -182,6 +192,7 @@ export async function GET(request: NextRequest) {
         naturalistic: naturalisticCount,
       },
       stats: {
+        uniqueSpeakers,
         morphACount,
         morphBCount,
         morphAPercentage,
