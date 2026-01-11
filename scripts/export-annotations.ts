@@ -9,6 +9,9 @@
  *   pnpm tsx scripts/export-annotations.ts csv
  */
 
+import { config } from "dotenv";
+config({ path: ".env.local" });
+
 import { PrismaClient } from "@prisma/client";
 import * as fs from "fs";
 import * as path from "path";
@@ -18,12 +21,12 @@ const prisma = new PrismaClient();
 
 // Watermark configuration
 const WATERMARK = {
-  copyright: "© 2025 Alessandro Rizzo. All Rights Reserved.",
+  copyright: "© 2026 Alessandro Rizzo.",
   license:
-    "CONFIDENTIAL AND PROPRIETARY - This data is the exclusive property of Alessandro Rizzo and may not be shared, distributed, or reproduced without explicit written permission.",
+    "Licensed under the Creative Commons Attribution-NonCommercial 4.0 International License (CC BY-NC 4.0). To view a copy of this license, visit https://creativecommons.org/licenses/by-nc/4.0/",
   trademark: "SeamlessInteractions™ Annotation Data",
   owner: "Alessandro Rizzo",
-  contact: "For licensing inquiries, contact the owner.",
+  contact: "l.alessandrorizzo@gmail.com",
 };
 
 interface ExportAnnotation {
