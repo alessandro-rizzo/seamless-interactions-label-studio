@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+title: SeamlessInteractions Annotation Dataset
+message: >-
+  If you use this dataset, please cite it using the
+  metadata from this file.
+type: dataset
+authors:
+  - given-names: Alessandro
+    family-names: Rizzo
+    email: l.alessandrorizzo@gmail.com
+repository-code: 'https://huggingface.co/datasets/lalessandrorizzo/seamless-interactions-annotations'
+abstract: >-
+  Human-annotated behavioral signal dataset for dyadic video
+  interactions from the Seamless Interaction Dataset. Contains
+  fine-grained multimodal annotations across 11 behavioral facets
+  (98 total signals) including prosody, gaze, gesture, turn-taking,
+  and more.
+keywords:
+  - multimodal
+  - interaction
+  - behavioral-signals
+  - annotation
+  - human-communication
+  - prosody
+  - gesture
+  - gaze
+  - turn-taking
+  - video-annotation
+license: CC-BY-NC-4.0
+version: 1.0.0
+date-released: '2026-01-11'

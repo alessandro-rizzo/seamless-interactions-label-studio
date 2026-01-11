@@ -1,0 +1,678 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SeamlessInteractions Annotation Schema",
+  "description": "Schema for the SeamlessInteractions behavioral annotation dataset",
+  "version": "1.0.0",
+  "type": "object",
+  "required": [
+    "id",
+    "videoId",
+    "vendorId",
+    "sessionId",
+    "interactionId",
+    "speaker1Id",
+    "speaker2Id",
+    "speaker1Label",
+    "speaker2Label",
+    "speaker1Confidence",
+    "speaker2Confidence",
+    "labelingTimeMs",
+    "createdAt",
+    "updatedAt",
+    "userEmail",
+    "username"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique annotation identifier (CUID format)"
+    },
+    "videoId": {
+      "type": "string",
+      "description": "Video identifier in format V{vendor}_S{session}_I{interaction}",
+      "pattern": "^V\\d+_S\\d+_I\\d+$"
+    },
+    "vendorId": {
+      "type": "integer",
+      "description": "Vendor ID from the source dataset",
+      "minimum": 0
+    },
+    "sessionId": {
+      "type": "integer",
+      "description": "Session ID from the source dataset",
+      "minimum": 0
+    },
+    "interactionId": {
+      "type": "integer",
+      "description": "Interaction ID from the source dataset",
+      "minimum": 0
+    },
+    "speaker1Id": {
+      "type": "string",
+      "description": "Participant 1 identifier (can be alphanumeric, e.g., '0799', '0299A')"
+    },
+    "speaker2Id": {
+      "type": "string",
+      "description": "Participant 2 identifier (can be alphanumeric, e.g., '0799', '0299A')"
+    },
+    "speaker1Label": {
+      "type": "string",
+      "description": "Morph classification for speaker 1",
+      "enum": ["Morph A", "Morph B"]
+    },
+    "speaker2Label": {
+      "type": "string",
+      "description": "Morph classification for speaker 2",
+      "enum": ["Morph A", "Morph B"]
+    },
+    "speaker1Confidence": {
+      "type": "integer",
+      "description": "Annotator confidence for speaker 1 classification",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "speaker2Confidence": {
+      "type": "integer",
+      "description": "Annotator confidence for speaker 2 classification",
+      "minimum": 1,
+      "maximum": 5
+    },
+    "speaker1Comments": {
+      "type": "string",
+      "description": "Free-text annotator notes for speaker 1",
+      "default": ""
+    },
+    "speaker2Comments": {
+      "type": "string",
+      "description": "Free-text annotator notes for speaker 2",
+      "default": ""
+    },
+    "speaker1Prosody": {
+      "type": "array",
+      "description": "Prosodic signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "low_pitch_variance",
+          "high_pitch_variance",
+          "rising_terminal",
+          "falling_terminal",
+          "flat_intonation",
+          "speech_rate_fast",
+          "speech_rate_slow",
+          "clipped_phrasing",
+          "elongated_vowels",
+          "volume_increase",
+          "volume_decrease",
+          "creaky_voice",
+          "breathy_voice"
+        ]
+      }
+    },
+    "speaker1LexicalChoice": {
+      "type": "array",
+      "description": "Lexical choice signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "hedging_terms",
+          "certainty_terms",
+          "intensifiers",
+          "mitigators",
+          "self_references",
+          "other_references",
+          "abstract_language",
+          "concrete_language",
+          "modal_verbs",
+          "politeness_markers",
+          "informal_register",
+          "formal_register"
+        ]
+      }
+    },
+    "speaker1TurnTaking": {
+      "type": "array",
+      "description": "Turn-taking signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "interruptions",
+          "overlaps",
+          "rapid_backchannels",
+          "delayed_backchannels",
+          "long_turns",
+          "short_turns",
+          "floor_holding",
+          "floor_yielding",
+          "competitive_entry",
+          "smooth_transition"
+        ]
+      }
+    },
+    "speaker1Gaze": {
+      "type": "array",
+      "description": "Gaze signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_gaze",
+          "gaze_aversion",
+          "gaze_shift_frequency_high",
+          "gaze_shift_frequency_low",
+          "downward_gaze",
+          "side_glance",
+          "gaze_following",
+          "gaze_fixation"
+        ]
+      }
+    },
+    "speaker1FacialExpression": {
+      "type": "array",
+      "description": "Facial expression signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "smile",
+          "micro_smile",
+          "brow_raise",
+          "brow_furrow",
+          "jaw_tension",
+          "lip_press",
+          "lip_purse",
+          "asymmetrical_expression",
+          "neutral_face",
+          "expression_freeze"
+        ]
+      }
+    },
+    "speaker1Gesture": {
+      "type": "array",
+      "description": "Gesture signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "expansive_gesture",
+          "restricted_gesture",
+          "illustrative_gesture",
+          "beat_gesture",
+          "self_touch",
+          "object_manipulation",
+          "gesture_synchrony_high",
+          "gesture_synchrony_low",
+          "mirroring"
+        ]
+      }
+    },
+    "speaker1Posture": {
+      "type": "array",
+      "description": "Posture signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "forward_lean",
+          "backward_lean",
+          "upright_posture",
+          "collapsed_posture",
+          "postural_shift_frequency_high",
+          "postural_shift_frequency_low",
+          "body_orientation_direct",
+          "body_orientation_angled",
+          "stillness"
+        ]
+      }
+    },
+    "speaker1AffectRegulation": {
+      "type": "array",
+      "description": "Affect regulation signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "self_soothing_touch",
+          "suppressed_expression",
+          "forced_smile",
+          "affect_dampening",
+          "affect_amplification",
+          "respiratory_control_visible",
+          "tension_release"
+        ]
+      }
+    },
+    "speaker1InteractionalRole": {
+      "type": "array",
+      "description": "Interactional role signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "initiative_taking",
+          "responsive_following",
+          "topic_introduction",
+          "topic_maintenance",
+          "topic_shift",
+          "alignment_behavior",
+          "counter_alignment"
+        ]
+      }
+    },
+    "speaker1TimingLatency": {
+      "type": "array",
+      "description": "Timing and latency signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "response_latency_short",
+          "response_latency_long",
+          "latency_variability_high",
+          "latency_variability_low",
+          "pause_before_response",
+          "pause_mid_turn"
+        ]
+      }
+    },
+    "speaker1RepairBehavior": {
+      "type": "array",
+      "description": "Repair behavior signals observed for speaker 1",
+      "items": {
+        "type": "string",
+        "enum": [
+          "self_correction",
+          "false_start",
+          "rephrasing",
+          "filled_pause",
+          "unfilled_pause",
+          "backtracking",
+          "clarification_request"
+        ]
+      }
+    },
+    "speaker2Prosody": {
+      "type": "array",
+      "description": "Prosodic signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "low_pitch_variance",
+          "high_pitch_variance",
+          "rising_terminal",
+          "falling_terminal",
+          "flat_intonation",
+          "speech_rate_fast",
+          "speech_rate_slow",
+          "clipped_phrasing",
+          "elongated_vowels",
+          "volume_increase",
+          "volume_decrease",
+          "creaky_voice",
+          "breathy_voice"
+        ]
+      }
+    },
+    "speaker2LexicalChoice": {
+      "type": "array",
+      "description": "Lexical choice signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "hedging_terms",
+          "certainty_terms",
+          "intensifiers",
+          "mitigators",
+          "self_references",
+          "other_references",
+          "abstract_language",
+          "concrete_language",
+          "modal_verbs",
+          "politeness_markers",
+          "informal_register",
+          "formal_register"
+        ]
+      }
+    },
+    "speaker2TurnTaking": {
+      "type": "array",
+      "description": "Turn-taking signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "interruptions",
+          "overlaps",
+          "rapid_backchannels",
+          "delayed_backchannels",
+          "long_turns",
+          "short_turns",
+          "floor_holding",
+          "floor_yielding",
+          "competitive_entry",
+          "smooth_transition"
+        ]
+      }
+    },
+    "speaker2Gaze": {
+      "type": "array",
+      "description": "Gaze signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "direct_gaze",
+          "gaze_aversion",
+          "gaze_shift_frequency_high",
+          "gaze_shift_frequency_low",
+          "downward_gaze",
+          "side_glance",
+          "gaze_following",
+          "gaze_fixation"
+        ]
+      }
+    },
+    "speaker2FacialExpression": {
+      "type": "array",
+      "description": "Facial expression signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "smile",
+          "micro_smile",
+          "brow_raise",
+          "brow_furrow",
+          "jaw_tension",
+          "lip_press",
+          "lip_purse",
+          "asymmetrical_expression",
+          "neutral_face",
+          "expression_freeze"
+        ]
+      }
+    },
+    "speaker2Gesture": {
+      "type": "array",
+      "description": "Gesture signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "expansive_gesture",
+          "restricted_gesture",
+          "illustrative_gesture",
+          "beat_gesture",
+          "self_touch",
+          "object_manipulation",
+          "gesture_synchrony_high",
+          "gesture_synchrony_low",
+          "mirroring"
+        ]
+      }
+    },
+    "speaker2Posture": {
+      "type": "array",
+      "description": "Posture signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "forward_lean",
+          "backward_lean",
+          "upright_posture",
+          "collapsed_posture",
+          "postural_shift_frequency_high",
+          "postural_shift_frequency_low",
+          "body_orientation_direct",
+          "body_orientation_angled",
+          "stillness"
+        ]
+      }
+    },
+    "speaker2AffectRegulation": {
+      "type": "array",
+      "description": "Affect regulation signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "self_soothing_touch",
+          "suppressed_expression",
+          "forced_smile",
+          "affect_dampening",
+          "affect_amplification",
+          "respiratory_control_visible",
+          "tension_release"
+        ]
+      }
+    },
+    "speaker2InteractionalRole": {
+      "type": "array",
+      "description": "Interactional role signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "initiative_taking",
+          "responsive_following",
+          "topic_introduction",
+          "topic_maintenance",
+          "topic_shift",
+          "alignment_behavior",
+          "counter_alignment"
+        ]
+      }
+    },
+    "speaker2TimingLatency": {
+      "type": "array",
+      "description": "Timing and latency signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "response_latency_short",
+          "response_latency_long",
+          "latency_variability_high",
+          "latency_variability_low",
+          "pause_before_response",
+          "pause_mid_turn"
+        ]
+      }
+    },
+    "speaker2RepairBehavior": {
+      "type": "array",
+      "description": "Repair behavior signals observed for speaker 2",
+      "items": {
+        "type": "string",
+        "enum": [
+          "self_correction",
+          "false_start",
+          "rephrasing",
+          "filled_pause",
+          "unfilled_pause",
+          "backtracking",
+          "clarification_request"
+        ]
+      }
+    },
+    "labelingTimeMs": {
+      "type": "integer",
+      "description": "Time spent annotating this video in milliseconds (0 for extrapolated annotations)",
+      "minimum": 0
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Annotation creation timestamp (ISO 8601)"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last update timestamp (ISO 8601)"
+    },
+    "userEmail": {
+      "type": "string",
+      "format": "email",
+      "description": "Annotator's email address"
+    },
+    "username": {
+      "type": "string",
+      "description": "Annotator's username (derived from email)"
+    }
+  },
+  "ontology": {
+    "description": "Behavioral signal ontology with 11 facets and 98 signals",
+    "facets": {
+      "prosody": {
+        "label": "Prosody",
+        "description": "Acoustic characteristics of speech independent of word choice",
+        "signals": {
+          "low_pitch_variance": "Pitch remains within a narrow frequency range across a turn",
+          "high_pitch_variance": "Noticeable pitch modulation within a turn, including rises and falls",
+          "rising_terminal": "Utterance ends with an upward pitch movement",
+          "falling_terminal": "Utterance ends with a downward pitch movement",
+          "flat_intonation": "Minimal pitch movement across the utterance, including terminal position",
+          "speech_rate_fast": "Words produced at a higher-than-baseline tempo for the speaker",
+          "speech_rate_slow": "Words produced at a lower-than-baseline tempo for the speaker",
+          "clipped_phrasing": "Syllables or words shortened or cut off abruptly",
+          "elongated_vowels": "Vowel sounds audibly extended beyond typical duration",
+          "volume_increase": "Audible rise in loudness within or across turns",
+          "volume_decrease": "Audible reduction in loudness within or across turns",
+          "creaky_voice": "Low-frequency, irregular vocal fold vibration (vocal fry)",
+          "breathy_voice": "Audible airflow accompanying phonation"
+        }
+      },
+      "lexical_choice": {
+        "label": "Lexical Choice",
+        "description": "Patterns in word and phrase selection",
+        "signals": {
+          "hedging_terms": "Use of words that soften commitment (e.g., 'maybe', 'kind of')",
+          "certainty_terms": "Use of words expressing confidence or finality (e.g., 'definitely', 'clearly')",
+          "intensifiers": "Words amplifying emphasis (e.g., 'very', 'extremely')",
+          "mitigators": "Words reducing force or imposition (e.g., 'just', 'a bit')",
+          "self_references": "First-person references (e.g., 'I', 'me', 'my')",
+          "other_references": "References to interlocutor(s) (e.g., 'you', 'they')",
+          "abstract_language": "Use of generalized or conceptual terms rather than concrete entities",
+          "concrete_language": "Use of specific, tangible, or directly referable terms",
+          "modal_verbs": "Use of modals expressing possibility, obligation, or ability (e.g., 'might', 'should')",
+          "politeness_markers": "Use of politeness forms (e.g., 'please', 'thank you')",
+          "informal_register": "Colloquial vocabulary or contractions",
+          "formal_register": "Structured or institutional vocabulary and syntax"
+        }
+      },
+      "turn_taking": {
+        "label": "Turn Taking",
+        "description": "How conversational floor access is managed",
+        "signals": {
+          "interruptions": "Speaker begins while another speaker is mid-turn, cutting them off",
+          "overlaps": "Simultaneous speech without clear interruption intent",
+          "rapid_backchannels": "Short acknowledgements produced quickly after or during turns",
+          "delayed_backchannels": "Acknowledgements produced after a noticeable delay",
+          "long_turns": "Turns significantly longer than interlocutor's or speaker's baseline",
+          "short_turns": "Turns noticeably brief or minimal",
+          "floor_holding": "Behaviours preventing turn transfer (e.g., continued speech, fillers)",
+          "floor_yielding": "Clear cues inviting the other speaker to take the floor",
+          "competitive_entry": "Entering the floor at transition-relevant points with assertive timing",
+          "smooth_transition": "Turn exchanges without overlap, interruption, or delay"
+        }
+      },
+      "gaze": {
+        "label": "Gaze",
+        "description": "Eye direction and movement relative to interlocutors",
+        "signals": {
+          "direct_gaze": "Eyes oriented toward interlocutor's face",
+          "gaze_aversion": "Eyes oriented away from interlocutor during interaction",
+          "gaze_shift_frequency_high": "Frequent changes in gaze direction within a short time",
+          "gaze_shift_frequency_low": "Sustained gaze direction with few shifts",
+          "downward_gaze": "Eyes oriented downward relative to head position",
+          "side_glance": "Brief lateral gaze movement without head turn",
+          "gaze_following": "Gaze tracks another speaker's movement or focus",
+          "gaze_fixation": "Prolonged gaze on a single point or target"
+        }
+      },
+      "facial_expression": {
+        "label": "Facial Expression",
+        "description": "Visible facial muscle movements, without inferred emotion",
+        "signals": {
+          "smile": "Sustained upward movement of lip corners",
+          "micro_smile": "Brief, subtle lip corner elevation",
+          "brow_raise": "Upward movement of eyebrows",
+          "brow_furrow": "Inward or downward movement of eyebrows",
+          "jaw_tension": "Visible tightening or clenching of jaw muscles",
+          "lip_press": "Lips pressed firmly together",
+          "lip_purse": "Lips drawn inward or forward",
+          "asymmetrical_expression": "Uneven facial movement across sides",
+          "neutral_face": "Minimal facial muscle movement",
+          "expression_freeze": "Facial expression held unusually still across time"
+        }
+      },
+      "gesture": {
+        "label": "Gesture",
+        "description": "Hand and arm movements accompanying interaction",
+        "signals": {
+          "expansive_gesture": "Broad movements extending away from the body",
+          "restricted_gesture": "Small or minimal hand movements close to the body",
+          "illustrative_gesture": "Movements that visually depict speech content",
+          "beat_gesture": "Rhythmic movements aligned with speech timing",
+          "self_touch": "Hands contacting one's own body",
+          "object_manipulation": "Handling or fidgeting with objects",
+          "gesture_synchrony_high": "Gestures closely aligned with speech rhythm",
+          "gesture_synchrony_low": "Gestures weakly or inconsistently aligned with speech",
+          "mirroring": "Gesture patterns resembling interlocutor's gestures"
+        }
+      },
+      "posture": {
+        "label": "Posture",
+        "description": "Whole-body orientation and stability",
+        "signals": {
+          "forward_lean": "Upper body inclined toward interlocutor",
+          "backward_lean": "Upper body inclined away from interlocutor",
+          "upright_posture": "Spine aligned vertically with minimal slouch",
+          "collapsed_posture": "Slouched or compressed torso position",
+          "postural_shift_frequency_high": "Frequent changes in body position",
+          "postural_shift_frequency_low": "Sustained body position with minimal movement",
+          "body_orientation_direct": "Torso facing interlocutor",
+          "body_orientation_angled": "Torso oriented partially away",
+          "stillness": "Minimal whole-body movement across time"
+        }
+      },
+      "affect_regulation": {
+        "label": "Affect Regulation",
+        "description": "Behaviours that modulate or constrain expressive output",
+        "signals": {
+          "self_soothing_touch": "Repetitive touch actions (e.g., rubbing hands, neck)",
+          "suppressed_expression": "Visible inhibition of facial or vocal expression",
+          "forced_smile": "Smile not accompanied by other facial movements",
+          "affect_dampening": "Reduction in expressive intensity over time",
+          "affect_amplification": "Increase in expressive intensity over time",
+          "respiratory_control_visible": "Audible or visible breath control (e.g., sighs, breath holds)",
+          "tension_release": "Visible relaxation following sustained tension"
+        }
+      },
+      "interactional_role": {
+        "label": "Interactional Role",
+        "description": "Behavioural positioning within conversational structure",
+        "signals": {
+          "initiative_taking": "Initiating topics or actions without prompt",
+          "responsive_following": "Primarily responding rather than initiating",
+          "topic_introduction": "Introducing new subject matter",
+          "topic_maintenance": "Sustaining or elaborating current topic",
+          "topic_shift": "Redirecting conversation to a new topic",
+          "alignment_behavior": "Behaviours matching interlocutor's framing or stance",
+          "counter_alignment": "Behaviours diverging from interlocutor's framing"
+        }
+      },
+      "timing_latency": {
+        "label": "Timing & Latency",
+        "description": "Temporal characteristics of response timing",
+        "signals": {
+          "response_latency_short": "Minimal delay between turn completion and response",
+          "response_latency_long": "Noticeable pause before responding",
+          "latency_variability_high": "Inconsistent response timing across turns",
+          "latency_variability_low": "Consistent response timing across turns",
+          "pause_before_response": "Silent pause preceding speech onset",
+          "pause_mid_turn": "Silent pause occurring within a turn"
+        }
+      },
+      "repair_behavior": {
+        "label": "Repair Behavior",
+        "description": "Corrections or restarts during interaction",
+        "signals": {
+          "self_correction": "Speaker revises their own speech content",
+          "false_start": "Abandoned utterance before completion",
+          "rephrasing": "Same idea restated with different wording",
+          "filled_pause": "Vocal fillers (e.g., 'um', 'uh')",
+          "unfilled_pause": "Silent gap without vocalisation",
+          "backtracking": "Returning to earlier conversational point",
+          "clarification_request": "Explicit request for clarification"
+        }
+      }
+    }
+  }
+}
